@@ -1,0 +1,15 @@
+{
+  "namespace": "start",
+
+  "start_screen": {
+    "type": "screen",
+    "controls": [
+      {
+        "label": {
+          "type": "label",
+          "text": "Bruh"
+        }
+      }
+    ]
+  }
+}
