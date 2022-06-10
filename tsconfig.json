@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "strictNullChecks": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitOverride": true,
+    "noImplicitAny": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}
