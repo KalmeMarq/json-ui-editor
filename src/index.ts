@@ -28,7 +28,7 @@ window.addEventListener('keydown', (e) => {
 const term = new Terminal({
   rendererType: 'dom',
   convertEol: true,
-  fontFamily: 'fira code',
+  fontFamily: 'Fira Code, monospace',
   windowsMode: true
 });
 const fitAddon = new FitAddon();
