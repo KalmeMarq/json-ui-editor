@@ -6,6 +6,25 @@
 {
   "namespace": "base",
 
+  "gradient_renderer": {
+    "type": "custom",
+    "renderer": "gradient_renderer",
+    "gradient_direction": "horizontal",
+    "color1": [0, 0.5, 0.1],
+    "color2": [1, 0.5, 0.1],
+    "size": [20, 20],
+    "offset": [40, 100]
+  },
+
+  // Exclusive to this editor
+  "fill_renderer": {
+    "type": "custom",
+    "renderer": "fill_renderer",
+    "color": [0, 0.5, 0.1],
+    "size": [20, 40],
+    "offset": [10, 100]
+  },
+
   "dialog": {
     "type": "image",
     "texture": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAABmJLR0QAAAD/AEbYZGs3AAAAjUlEQVQoz52SwQ0DIQwEx6dU5J8LuRdlUAeiEPqAspxHFJS7kDvIvixLo13DCkc515KvAXD3a05EOrPNQgC11p5KzlBr7SeYcwaglNIdb6GzHqNljLHPqkoIYQ4ESCkJgJn5KMnGnxo6qipm5stgCOH2oaajvr/i01FExPd9X7rxULkZuJTyat9iybvZEx7PL79xNlidAAAAAElFTkSuQmCC",
