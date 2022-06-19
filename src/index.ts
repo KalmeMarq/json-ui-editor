@@ -6,6 +6,8 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import stripJsonComments from 'strip-json-comments';
 
+export type GradientDirection = 'vertical' | 'horizontal';
+
 const base = await (await fetch('base.json')).text();
 const editor = monaco.editor.create(document.getElementById('meh')!, {
   value: base,
@@ -73,6 +75,103 @@ class UIControl {
 }
 
 let els: UIControl[] = [];
+
+interface Renderer {
+  render(control: UICustomControl, renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void;
+}
+
+class FillRenderer implements Renderer {
+  render(control: UICustomControl, renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
+    renderCtx.fillStyle = `rgba(${control._color[0]}, ${control._color[1]}, ${control._color[2]}, ${control._color[3]})`;
+
+    let w = screenWidth;
+    let h = screenHeight;
+
+    if (control._size[0] !== -1) {
+      w = control._size[0];
+    }
+
+    if (control._size[1] !== -1) {
+      h = control._size[1];
+    }
+
+    renderCtx.globalAlpha = control._alpha;
+
+    renderCtx.fillRect(control._offset[0], control._offset[1], w, h);
+
+    renderCtx.globalAlpha = 1.0;
+  }
+}
+
+class GradientRenderer {
+  _gradient: CanvasGradient | null = null;
+
+  render(control: UICustomControl, renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
+    let w = screenWidth;
+    let h = screenHeight;
+
+    if (control._size[0] !== -1) {
+      w = control._size[0];
+    }
+
+    if (control._size[1] !== -1) {
+      h = control._size[1];
+    }
+
+    if (this._gradient === null) {
+      if (control._gradient_direction === 'vertical') {
+        this._gradient = renderCtx.createLinearGradient(control._offset[0], control._offset[1] + h, control._offset[0], control._offset[1]);
+        this._gradient.addColorStop(0, `rgba(${control._color2[0]}, ${control._color2[1]},${control._color2[2]}, ${control._color2[3]})`);
+        this._gradient.addColorStop(1, `rgba(${control._color1[0]}, ${control._color1[1]},${control._color1[2]}, ${control._color1[3]})`);
+      } else {
+        this._gradient = renderCtx.createLinearGradient(control._offset[0] + w, control._offset[1], control._offset[0], control._offset[1]);
+        this._gradient.addColorStop(0, `rgba(${control._color2[0]}, ${control._color2[1]},${control._color2[2]}, ${control._color2[3]})`);
+        this._gradient.addColorStop(1, `rgba(${control._color1[0]}, ${control._color1[1]},${control._color1[2]}, ${control._color1[3]})`);
+      }
+    }
+
+    ctx.fillStyle = this._gradient;
+    ctx.fillRect(control._offset[0], control._offset[1], w, h);
+  }
+}
+
+class UICustomControl extends UIControl {
+  _custom_renderer: Renderer | null = null;
+  _gradient_direction: GradientDirection = 'vertical';
+  _color: [number, number, number, number] = [255, 255, 255, 1.0];
+  _color1: [number, number, number, number] = [255, 255, 255, 1.0];
+  _color2: [number, number, number, number] = [255, 255, 255, 1.0];
+
+  setRenderer(renderer: Renderer | null) {
+    this._custom_renderer = renderer;
+  }
+
+  setGradientDIrection(gradient_direction: GradientDirection) {
+    this._gradient_direction = gradient_direction;
+  }
+
+  setColor(color: [number, number, number, number]) {
+    this._color = color;
+  }
+
+  setColor1(color1: [number, number, number, number]) {
+    this._color1 = color1;
+  }
+
+  setColor2(color2: [number, number, number, number]) {
+    this._color2 = color2;
+  }
+
+  override render(renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
+    if (this._custom_renderer !== null) {
+      this._custom_renderer.render(this, renderCtx, screenWidth, screenHeight);
+    }
+
+    for (let i = 0; i < this._children.length; ++i) {
+      this._children[i].render(renderCtx, screenWidth, screenHeight);
+    }
+  }
+}
 
 class UIFillControl extends UIControl {
   _color: [number, number, number, number] = [255, 255, 255, 1.0];
@@ -411,7 +510,133 @@ function parseUI(data: any) {
   function createControl(name: any, props: any): UIControl | undefined {
     if (props.ignored) return undefined;
 
-    if (props.type === 'image') {
+    if (props.type === 'custom') {
+      const control = new UICustomControl();
+
+      if (props.alpha && typeof props.alpha === 'number') {
+        control.setAlpha(props.alpha);
+      }
+
+      if (typeof props.renderer === 'string') {
+        switch (props.renderer) {
+          case 'fill_renderer':
+            control.setRenderer(new FillRenderer());
+            break;
+          case 'gradient_renderer':
+            control.setRenderer(new GradientRenderer());
+            break;
+          default:
+            term.writeln('[ERROR] UI: ' + name + '; renderer[' + props.renderer + '] is not a valid.');
+            break;
+        }
+      }
+
+      if (props.size) {
+        if (Array.isArray(props.size) && props.size.length === 2) {
+          control.setSize(props.size);
+        }
+      }
+
+      if (props.offset) {
+        if (Array.isArray(props.offset) && props.offset.length === 2) {
+          control.setOffset(props.offset);
+        }
+      }
+
+      if (typeof props.visible === 'boolean') {
+        control.setVisible(props.visible);
+      }
+
+      if (typeof props.gradient_direction === 'string') {
+        switch (props.gradient_direction) {
+          case 'vertical':
+            control.setGradientDIrection('vertical');
+            break;
+          case 'horizontal':
+            control.setGradientDIrection('horizontal');
+            break;
+        }
+      }
+
+      if (props.color) {
+        if (Array.isArray(props.color)) {
+          if (props.color.length === 3) {
+            control.setColor([...props.color.map((c: number) => c * 255), 1.0] as any);
+          } else if (props.color.length === 4) {
+            control.setColor(props.color.map((c: number, i: number, arr: any[]) => (i + 1 < arr.length ? c * 255 : c)));
+          } else if (props.color.length > 4 || props.color.length < 3) {
+            term.writeln('[ERROR] UI: ' + name + '; color property is a 3 or 4 length array');
+            return undefined;
+          }
+        } else if (typeof props.color === 'string' && props.color.startsWith('#')) {
+          const c = props.color.trim().substring(1);
+          const co = parseInt(c, 16);
+
+          const alpha = (co >> 24) & 0xff;
+          const red = (co >> 16) & 0xff;
+          const green = (co >> 8) & 0xff;
+          const blue = (co >> 0) & 0xff;
+
+          control.setColor([red, green, blue, c.length === 8 ? Math.min(Math.max(alpha / 255, 0), 1.0) : 1.0]);
+        }
+      }
+
+      if (props.color1) {
+        if (Array.isArray(props.color1)) {
+          if (props.color1.length === 3) {
+            control.setColor1([...props.color1.map((c: number) => c * 255), 1.0] as any);
+          } else if (props.color1.length === 4) {
+            control.setColor1(props.color1.map((c: number, i: number, arr: any[]) => (i + 1 < arr.length ? c * 255 : c)));
+          } else if (props.color1.length > 4 || props.color1.length < 3) {
+            term.writeln('[ERROR] UI: ' + name + '; color property is a 3 or 4 length array');
+            return undefined;
+          }
+        } else if (typeof props.color1 === 'string' && props.color1.startsWith('#')) {
+          const c = props.color1.trim().substring(1);
+          const co = parseInt(c, 16);
+
+          const alpha = (co >> 24) & 0xff;
+          const red = (co >> 16) & 0xff;
+          const green = (co >> 8) & 0xff;
+          const blue = (co >> 0) & 0xff;
+
+          control.setColor1([red, green, blue, c.length === 8 ? Math.min(Math.max(alpha / 255, 0), 1.0) : 1.0]);
+        }
+      }
+
+      if (props.color2) {
+        if (Array.isArray(props.color2)) {
+          if (props.color2.length === 3) {
+            control.setColor2([...props.color2.map((c: number) => c * 255), 1.0] as any);
+          } else if (props.color2.length === 4) {
+            control.setColor2(props.color2.map((c: number, i: number, arr: any[]) => (i + 1 < arr.length ? c * 255 : c)));
+          } else if (props.color2.length > 4 || props.color2.length < 3) {
+            term.writeln('[ERROR] UI: ' + name + '; color property is a 3 or 4 length array');
+            return undefined;
+          }
+        } else if (typeof props.color2 === 'string' && props.color2.startsWith('#')) {
+          const c = props.color2.trim().substring(1);
+          const co = parseInt(c, 16);
+
+          const alpha = (co >> 24) & 0xff;
+          const red = (co >> 16) & 0xff;
+          const green = (co >> 8) & 0xff;
+          const blue = (co >> 0) & 0xff;
+
+          control.setColor2([red, green, blue, c.length === 8 ? Math.min(Math.max(alpha / 255, 0), 1.0) : 1.0]);
+        }
+      }
+
+      if (Array.isArray(props.controls)) {
+        for (let i = 0; i < props.controls.length; i++) {
+          const e = Object.entries(props.controls[i])[0];
+          const c = createControl(e[0], e[1]);
+          if (c) control.addChildren(c);
+        }
+      }
+
+      return control;
+    } else if (props.type === 'image') {
       const control = new UISpriteControl();
 
       if (typeof props.tiled === 'boolean') {
