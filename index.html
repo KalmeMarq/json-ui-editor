@@ -31,7 +31,7 @@
 
       #container {
         position: relative;
-        width: 40%;
+        width: 50%;
         height: 100%;
       }
 
@@ -41,15 +41,21 @@
       }
 
       #displayw {
-        width: 60%;
-        max-width: 60%;
+        width: 50%;
+        max-width: 50%;
         height: calc(100vh - 16px);
+        max-height: 50%;
       }
 
       #display {
         width: 100%;
-        padding-bottom: 60%;
+        height: 100%;
         background: rgb(255, 255, 255);
+      }
+
+      canvas {
+        width: 800px;
+        height: 600px;
       }
 
       .resizer {
@@ -218,6 +224,7 @@
         z-index: 2;
         position: relative;
       }
+
     </style>
   </head>
   <body>
@@ -226,7 +233,9 @@
         <div id="meh"></div>
       </div>
       <div id="displayw">
-        <div id="display"></div>
+        <div id="display">
+          <canvas id="canvas"></canvas>
+        </div>
         <div id="terminal"></div>
       </div>
     </div>

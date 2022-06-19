@@ -1,15 +1,64 @@
+/*
+  The editor is still in early development!
+  Includes the JSON UI Schema. Take a look at https://github.com/KalmeMarq/Bugrock-JSON-UI-Schemas
+  Type "fill" is not a json ui valid type. It's only here for testing.
+*/
 {
-  "namespace": "start",
+  "namespace": "base",
 
-  "start_screen": {
-    "type": "screen",
+  "advance": {
+    "type": "image",
+    "texture": "https://novaskinpacks-cbc.kxcdn.com/1.15.2/assets/minecraft/textures/gui/advancements/widgets.png",
+    "offset": [120, 30],
+    "size": [26, 26],
+    "uv_size": [26, 26],
+    "uv": [0, 129]
+  },
+
+  "glow": {
+    "type": "image",
+    "texture": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAACzVBMVEX72XnOjVaLVCxuRCFyRyTGhVHyzG7Qi1bCf090SCONWjT69/T+7tnNjFmMVi2FZDb55sf10HXBgE1zSCVxSyV4UCiNWS/Bfk15TSiFYjPCglP25M7/8NP20HR1SiaPXDXCgU96TymHYzWKVyyETyhwRSF1TiZxTSaMbUB9Vit6UyztynDJiVN4TCaDYjWEYTN0SiWJZDjKjVvzznPKiliIUixtQx9/XDT07+bv0Xp7VChzSSNzSCSKaTyNbTxvRyN2TiXLjVv89O7/8tv85snIiFZ6TSXsynD/89b96MzDg1OOcUf05Mn42HhtQiGHVCruy3D+7tT+79P93n/yzG2LVi3KiVPyzXLIiFiKVS2Lajzz4cn//PH11Xd4UyhwRiJ5TijHh1b10nT41HHHiFJ1SCSDTyh2TCR8VimEYTSIVS3MjFrqyHB/VCnvz3KRcD1wSyRzSCOLVivCgE52SiZyTCVvRSKPcELqyW+RYDKFYTWFUSmCVivEhFf/8dPwzXONWS6CYDR3TiyLVy15UimFYzSNWzX18Ovuym91TCV3UifpyXH/+ez65s7PjlzAe0qRXjfz4cHzznTBgU6LZTfDg1T96tP+7NLKild0SCSVdUDv0HXHhVWIUyx3SibDgk/zz3TMjFWRWi+IVi94SyfHiFZtQh90TyeEZDZ2TSVyRiJwRyOKZzaLVSx0SSKNajny0nn148mOb0B8Tid0SSV4UiuIViuGZDZyTSZyTiaQcDzwz3TJill2TCp4VC315cr//vPz0HZ2SSWQcELz03qMWS2MaznvznT/7tXx3MN2TSuMbD3tzHLLilR5Uyjry3H/+/H55szBgVGKaDjIiln96s341n2FUSp3TyuAWixwRiOEYjWOWi/Dg1WLWDNzTiaFZDd+WCzz0XPOjFWHUCh6VS7y4MXvznKHVClzTyZvRCFuQyByTSWFZTf///9913HUAAAAAWJLR0Tuz7fSNwAAAAd0SU1FB+YGEwYON+OWq90AAABqSURBVBjTY2RgRAMCKLyvPCz8aNIsAmg6UATuqAIFkLWYoKtgJCBw0AEsgDDDn5Fxag4j4xy4QF+AMkgFH1zgviGqlsANjH9YGTey8II1AoEyD8Qpl4HkIXtGxgOOIP41bcYHMC29JWBBACIoE8h7PHgoAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDIyLTA2LTE5VDA2OjE0OjU1KzAwOjAwl5XgWAAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyMi0wNi0xOVQwNjoxNDo1NSswMDowMObIWOQAAAAgdEVYdHNvZnR3YXJlAGh0dHBzOi8vaW1hZ2VtYWdpY2sub3JnvM8dnQAAABh0RVh0VGh1bWI6OkRvY3VtZW50OjpQYWdlcwAxp/+7LwAAABh0RVh0VGh1bWI6OkltYWdlOjpIZWlnaHQAMTYwKcsMtgAAABd0RVh0VGh1bWI6OkltYWdlOjpXaWR0aAAxNjC6OlzrAAAAGXRFWHRUaHVtYjo6TWltZXR5cGUAaW1hZ2UvcG5nP7JWTgAAABd0RVh0VGh1bWI6Ok1UaW1lADE2NTU2MTkyOTUsykAvAAAAEHRFWHRUaHVtYjo6U2l6ZQAzOTJChtaS9QAAADZ0RVh0VGh1bWI6OlVSSQBmaWxlOi8vL3RtcC90aHVtYmxyL2ltZzEyNTkwMjczMDM0NjQyMTM3ODYwAwsQbgAAAABJRU5ErkJggg==",
+    "offset": [125, 34],
+    "size": [16, 16],
+    "grayscale": true
+  },
+
+  "fill": {
+    "type": "fill",
+    "size": [20, 20],
+    "color": [0.5, 1, 0.5],
+    "alpha": 0.5
+  },
+
+  "fill_with_alpha": {
+    "type": "fill",
+    "offset": [0, 60],
+    "size": [40, 20],
+    "color": "#FF11FF",
     "controls": [
       {
-        "label": {
-          "type": "label",
-          "text": "Bruh"
+        "fill_above": {
+          "type": "fill",
+          "color": [1, 0, 0.1],
+          "size": [20, 10],
+          "offset": [10, 10]
         }
       }
     ]
+  },
+
+  "fill_color_alpha": {
+    "type": "fill",
+    "offset": [40, 60],
+    "size": [40, 30],
+    "color": "#AAFF11FF"
+  },
+
+  "fill_with_visible": {
+    "type": "fill",
+    "offset": [80, 0],
+    "size": [40, 90],
+    "color": "#000FF",
+    "visible": false
   }
 }

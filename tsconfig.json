@@ -6,7 +6,7 @@
     "strict": true,
     "strictNullChecks": true,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
+    // "noImplicitReturns": true,
     "noImplicitThis": true,
     "noImplicitOverride": true,
     "noImplicitAny": true,
