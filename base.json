@@ -1,15 +1,54 @@
+/*
+  The editor is still in early development!
+  Includes the JSON UI Schema. Take a look at https://github.com/KalmeMarq/Bugrock-JSON-UI-Schemas
+  Type "fill" is not a json ui valid type. It's only here for testing.
+*/
 {
-  "namespace": "start",
+  "namespace": "base",
 
-  "start_screen": {
-    "type": "screen",
+  "sprite": {
+    "type": "image",
+    "texture": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAC01BMVEUFAgkAAAIAAAEGARAdAFIPAyYQCCMGAw0NCBMtHkIjGDYSBiAPCRknHDwxIUglGzkEAgcBAQMLBxERCxwOBCAeAVQeAlMOBxsoGzoXECQVCCVJCIAqF0QuIEMWDyMLBxIFABAMBxMtHkAvIEQeFi8NBhwVBSkeFjEhGTMSDR8mCUJaB50hDjknF0ALBBgEAgkiBVguHEooG0IXECcXDiwnE0ZICIEkCz4ZCCwmCkNSB48ZAi0QBBxBB3grAmYHABIKBRckFj4wCW0eCT0hA1gsBWtOBY9PBo1jBq5lB7EgBjgJBQ8GAwsYAy1BBH0PAh0YCispDEddB6hIBoETBScWCykWCCcVAykeAzVMCIU0HE4QBR0KAhciAVcLAB9YBpohBjkdDjEhGDMvH0Q6G10qBWMNASENBBgeFS8aBy46BGgQBRwLAx0dAVEQAh0rHUAbEDAqDkhgDKdRCJcnBF8JARkVAyc6BGkbBy8oGzsdFi4KBBYEAA0IBA4xG0kmGUAtBmliB7AzDFgrGUclFkUoBGFGA4EZBSwaEykXECUaDS4SCSUfA1UcCDtECH0aBTApCUxlB7JMCYYoFkYUAylCBXgUCCQMCBUeCTVABnYsBmoUCCwiA1svAXNNBJJcB6AnBEQVAyogBVIMBhMQBRsIBg8VCSU9Bm4bBDckE0YFAwoUCycVBy0lCEY/BXQRBSAPCCAQChswHkU0Hk4fFjATDSAcCTohA1klBGIPCRgtHkEsHUETCyURAiQlAlwRCCIRDRwgGDI4H1VODIgZBzATCSweBFEWCjAMBBolHDoWDyQ8BWwRAyQHBQ4NChgkDT5JBoYpAWciAV8MAx4YEicJBg8KCBIbFSoTBiJEBXkdCDQKBhIZEygNCRURBR8MAR8eAFQJABoFAwkNCRcOARlJBIMOAhkGBAsTDiEeFy8VCyopAmULAxoNAiEeAVMJAhX////+PCldAAAAAWJLR0TwNbjvVAAAAAd0SU1FB+UHGhciOJEAADEAAABcSURBVBjTY2RgRAMCaHwWygROmYNIdwk0FeoMGwJRBPgYE7CbMS0bKsAPFWCFMVYxMt7UQNYClDBHNoOJg5//NB8QZPBCAOM1mNRuR1YgeYLx8SF7mJDIW0ZGQQB+qw7jXcWXHwAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNy0yNlQyMzozNDo1NiswMDowMDG6JRwAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDctMjZUMjM6MzQ6NTYrMDA6MDBA552gAAAAIHRFWHRzb2Z0d2FyZQBodHRwczovL2ltYWdlbWFnaWNrLm9yZ7zPHZ0AAAAYdEVYdFRodW1iOjpEb2N1bWVudDo6UGFnZXMAMaf/uy8AAAAYdEVYdFRodW1iOjpJbWFnZTo6SGVpZ2h0ADE2MCnLDLYAAAAXdEVYdFRodW1iOjpJbWFnZTo6V2lkdGgAMTYwujpc6wAAABl0RVh0VGh1bWI6Ok1pbWV0eXBlAGltYWdlL3BuZz+yVk4AAAAXdEVYdFRodW1iOjpNVGltZQAxNjI3MzQyNDk2Yzjs1QAAABF0RVh0VGh1bWI6OlNpemUAMTExNEJD1gSWAAAANXRFWHRUaHVtYjo6VVJJAGZpbGU6Ly8vdG1wL3RodW1ibHIvaW1nMjMwODE2NzA2ODM0NzgwODc2MqZ+/B8AAAAASUVORK5CYII=",
+    "offset": [50, 29],
+    "size": [64, 64]
+  },
+
+  "fill": {
+    "type": "fill",
+    "size": [20, 20],
+    "color": [0.5, 1, 0.5],
+    "alpha": 0.5
+  },
+
+  "fill_with_alpha": {
+    "type": "fill",
+    "offset": [0, 60],
+    "size": [40, 20],
+    "color": "#FF11FF",
     "controls": [
       {
-        "label": {
-          "type": "label",
-          "text": "Bruh"
+        "fill_above": {
+          "type": "fill",
+          "color": [1, 0, 0.1],
+          "size": [20, 10],
+          "offset": [10, 10]
         }
       }
     ]
+  },
+
+  "fill_color_alpha": {
+    "type": "fill",
+    "offset": [40, 60],
+    "size": [40, 30],
+    "color": "#AAFF11FF"
+  },
+
+  "fill_with_visible": {
+    "type": "fill",
+    "offset": [80, 0],
+    "size": [40, 90],
+    "color": "#000FF",
+    "visible": false
   }
 }
