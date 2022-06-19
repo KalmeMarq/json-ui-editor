@@ -6,7 +6,13 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import stripJsonComments from 'strip-json-comments';
 
+export type FontSize = 'small' | 'normal' | 'large' | 'extra_large';
+export type TextAlignment = 'left' | 'center' | 'right';
 export type GradientDirection = 'vertical' | 'horizontal';
+export type AnchorPoint = 'top_left' | 'top_middle' | 'top_right' | 'left_middle' | 'center' | 'right_middle' | 'bottom_left' | 'bottom_middle' | 'bottom_right';
+export interface Renderer {
+  render(control: UICustomControl, renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void;
+}
 
 const base = await (await fetch('base.json')).text();
 const editor = monaco.editor.create(document.getElementById('meh')!, {
@@ -41,6 +47,8 @@ ctx.scale(3, 3);
 ctx.imageSmoothingEnabled = false;
 
 class UIControl {
+  _anchor_from: AnchorPoint = 'top_left';
+  _anchor_to: AnchorPoint = 'top_left';
   _visible = true;
   _offset: [number, number] = [0, 0];
   _size: [number, number] = [-1, -1];
@@ -51,6 +59,14 @@ class UIControl {
 
   setAlpha(alpha: number) {
     this._alpha = alpha;
+  }
+
+  setAnchorFrom(anchor: AnchorPoint) {
+    this._anchor_from = anchor;
+  }
+
+  setAnchorTo(anchor: AnchorPoint) {
+    this._anchor_to = anchor;
   }
 
   setSize(size: [number, number]) {
@@ -75,10 +91,6 @@ class UIControl {
 }
 
 let els: UIControl[] = [];
-
-interface Renderer {
-  render(control: UICustomControl, renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void;
-}
 
 class FillRenderer implements Renderer {
   render(control: UICustomControl, renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
@@ -132,6 +144,97 @@ class GradientRenderer {
 
     ctx.fillStyle = this._gradient;
     ctx.fillRect(control._offset[0], control._offset[1], w, h);
+  }
+}
+
+class RectangleArea {
+  x1 = 0;
+  y1 = 0;
+  x2 = 0;
+  y2 = 0;
+
+  setX1(x1: number) {
+    this.x1 = x1;
+  }
+
+  setX2(x2: number) {
+    this.x2 = x2;
+  }
+
+  setY1(y1: number) {
+    this.y1 = y1;
+  }
+
+  setY2(y2: number) {
+    this.y2 = y2;
+  }
+}
+
+class UIPanelControl extends UIControl {
+  override render(renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
+    for (let i = 0; i < this._children.length; ++i) {
+      this._children[i].render(renderCtx, screenWidth, screenHeight);
+    }
+  }
+}
+
+class UITextControl extends UIControl {
+  _text: string = '';
+  _color: [number, number, number, number] = [255, 255, 255, 1.0];
+  _shadow: boolean = false;
+  _text_alignment: TextAlignment | null = null;
+  _font_size: FontSize | null = null;
+  _font_scale_factor = 1;
+  _font_type = 'MinecraftiaRegular';
+
+  override render(renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
+    renderCtx.font = this._font_scale_factor * 5 + 'px ' + this._font_type;
+
+    const r = this._color[0];
+    const g = this._color[1];
+    const b = this._color[2];
+    const a = this._color[3];
+
+    if (this._shadow) {
+      renderCtx.fillStyle = `rgba(${r * 0.25},${g * 0.25},${b * 0.25},${a})`;
+      renderCtx.fillText(this._text, this._offset[0] + 1, this._offset[1] + 1 + 5);
+    }
+
+    renderCtx.fillStyle = `rgba(${r},${g},${b},${a})`;
+
+    renderCtx.fillText(this._text, this._offset[0], this._offset[1] + 5);
+
+    for (let i = 0; i < this._children.length; ++i) {
+      this._children[i].render(renderCtx, screenWidth, screenHeight);
+    }
+  }
+
+  setColor(color: [number, number, number, number]) {
+    this._color = color;
+  }
+
+  setShadow(shadow: boolean) {
+    this._shadow = shadow;
+  }
+
+  setText(text: string) {
+    this._text = text;
+  }
+
+  setTextAlignment(alignment: TextAlignment | null) {
+    this._text_alignment = alignment;
+  }
+
+  setFontSize(size: FontSize | null) {
+    this._font_size = size;
+  }
+
+  setFontType(font: string) {
+    this._font_type = font;
+  }
+
+  setFontScaleFactor(factor: number) {
+    this._font_scale_factor = factor;
   }
 }
 
@@ -504,7 +607,6 @@ function parseUI(data: any) {
     return;
   }
 
-  const namespace = data.namespace;
   delete data.namespace;
 
   function createControl(name: any, props: any): UIControl | undefined {
@@ -531,21 +633,8 @@ function parseUI(data: any) {
         }
       }
 
-      if (props.size) {
-        if (Array.isArray(props.size) && props.size.length === 2) {
-          control.setSize(props.size);
-        }
-      }
-
-      if (props.offset) {
-        if (Array.isArray(props.offset) && props.offset.length === 2) {
-          control.setOffset(props.offset);
-        }
-      }
-
-      if (typeof props.visible === 'boolean') {
-        control.setVisible(props.visible);
-      }
+      populateControl(control, name, props);
+      populateLayout(control, name, props);
 
       if (typeof props.gradient_direction === 'string') {
         switch (props.gradient_direction) {
@@ -581,51 +670,9 @@ function parseUI(data: any) {
         }
       }
 
-      if (props.color1) {
-        if (Array.isArray(props.color1)) {
-          if (props.color1.length === 3) {
-            control.setColor1([...props.color1.map((c: number) => c * 255), 1.0] as any);
-          } else if (props.color1.length === 4) {
-            control.setColor1(props.color1.map((c: number, i: number, arr: any[]) => (i + 1 < arr.length ? c * 255 : c)));
-          } else if (props.color1.length > 4 || props.color1.length < 3) {
-            term.writeln('[ERROR] UI: ' + name + '; color property is a 3 or 4 length array');
-            return undefined;
-          }
-        } else if (typeof props.color1 === 'string' && props.color1.startsWith('#')) {
-          const c = props.color1.trim().substring(1);
-          const co = parseInt(c, 16);
-
-          const alpha = (co >> 24) & 0xff;
-          const red = (co >> 16) & 0xff;
-          const green = (co >> 8) & 0xff;
-          const blue = (co >> 0) & 0xff;
-
-          control.setColor1([red, green, blue, c.length === 8 ? Math.min(Math.max(alpha / 255, 0), 1.0) : 1.0]);
-        }
-      }
-
-      if (props.color2) {
-        if (Array.isArray(props.color2)) {
-          if (props.color2.length === 3) {
-            control.setColor2([...props.color2.map((c: number) => c * 255), 1.0] as any);
-          } else if (props.color2.length === 4) {
-            control.setColor2(props.color2.map((c: number, i: number, arr: any[]) => (i + 1 < arr.length ? c * 255 : c)));
-          } else if (props.color2.length > 4 || props.color2.length < 3) {
-            term.writeln('[ERROR] UI: ' + name + '; color property is a 3 or 4 length array');
-            return undefined;
-          }
-        } else if (typeof props.color2 === 'string' && props.color2.startsWith('#')) {
-          const c = props.color2.trim().substring(1);
-          const co = parseInt(c, 16);
-
-          const alpha = (co >> 24) & 0xff;
-          const red = (co >> 16) & 0xff;
-          const green = (co >> 8) & 0xff;
-          const blue = (co >> 0) & 0xff;
-
-          control.setColor2([red, green, blue, c.length === 8 ? Math.min(Math.max(alpha / 255, 0), 1.0) : 1.0]);
-        }
-      }
+      parseColor(props.color, (v) => control.setColor(v));
+      parseColor(props.color1, (v) => control.setColor1(v));
+      parseColor(props.color2, (v) => control.setColor2(v));
 
       if (Array.isArray(props.controls)) {
         for (let i = 0; i < props.controls.length; i++) {
@@ -639,104 +686,11 @@ function parseUI(data: any) {
     } else if (props.type === 'image') {
       const control = new UISpriteControl();
 
-      if (typeof props.tiled === 'boolean') {
-        control.setTiled(props.tiled);
-      }
+      parseColor(props.color, (v) => control.setColor(v));
 
-      if (typeof props.clip_direction === 'string') {
-        switch (props.clip_direction) {
-          case 'up':
-            control.setClipDirection(ClipDirection.Up);
-            break;
-          case 'down':
-            control.setClipDirection(ClipDirection.Down);
-            break;
-          case 'left':
-            control.setClipDirection(ClipDirection.Left);
-            break;
-          case 'right':
-            control.setClipDirection(ClipDirection.Right);
-            break;
-        }
-      }
-
-      if (typeof props.clip_ratio === 'number') {
-        control.setClipRatio(props.clip_ratio);
-      }
-
-      if (Array.isArray(props.tiled_scale) && props.tiled_scale.length === 2) {
-        control.setTiledScale(props.tiled_scale);
-      }
-
-      if (typeof props.nineslice_size === 'number') {
-        const n = ~~props.nineslice_size;
-        control.setNinesliceSize([n, n, n, n]);
-      } else if (Array.isArray(props.nineslice_size) && props.nineslice_size.length === 4) {
-        control.setNinesliceSize(props.nineslice_size);
-      }
-
-      if (props.color) {
-        if (Array.isArray(props.color)) {
-          if (props.color.length === 3) {
-            control.setColor([...props.color.map((c: number) => c * 255), 1.0] as any);
-          } else if (props.color.length === 4) {
-            control.setColor(props.color.map((c: number, i: number, arr: any[]) => (i + 1 < arr.length ? c * 255 : c)));
-          } else if (props.color.length > 4 || props.color.length < 3) {
-            term.writeln('[ERROR] UI: ' + name + '; color property is a 3 or 4 length array');
-            return undefined;
-          }
-        } else if (typeof props.color === 'string' && props.color.startsWith('#')) {
-          const c = props.color.trim().substring(1);
-          const co = parseInt(c, 16);
-
-          const alpha = (co >> 24) & 0xff;
-          const red = (co >> 16) & 0xff;
-          const green = (co >> 8) & 0xff;
-          const blue = (co >> 0) & 0xff;
-
-          control.setColor([red, green, blue, c.length === 8 ? Math.min(Math.max(alpha / 255, 0), 1.0) : 1.0]);
-        }
-      }
-
-      if (props.alpha && typeof props.alpha === 'number') {
-        control.setAlpha(props.alpha);
-      }
-
-      if (props.size) {
-        if (Array.isArray(props.size) && props.size.length === 2) {
-          control.setSize(props.size);
-        }
-      }
-
-      if (props.offset) {
-        if (Array.isArray(props.offset) && props.offset.length === 2) {
-          control.setOffset(props.offset);
-        }
-      }
-
-      if (Array.isArray(props.uv) && props.uv.length === 2) {
-        control.setUV(props.uv);
-      }
-
-      if (Array.isArray(props.uv_size) && props.uv_size.length === 2) {
-        control.setUVSize(props.uv_size);
-      }
-
-      if (typeof props.texture === 'string') {
-        control.setTexture(props.texture);
-      }
-
-      if (typeof props.visible === 'boolean') {
-        control.setVisible(props.visible);
-      }
-
-      if (typeof props.grayscale === 'boolean') {
-        control.setGrayscale(props.grayscale);
-      }
-
-      if (typeof props.keep_ratio === 'boolean') {
-        control.setKeepRatio(props.keep_ratio);
-      }
+      populateControl(control, name, props);
+      populateLayout(control, name, props);
+      populateSprite(control, name, props);
 
       if (Array.isArray(props.controls)) {
         for (let i = 0; i < props.controls.length; i++) {
@@ -747,9 +701,7 @@ function parseUI(data: any) {
       }
 
       return control;
-    }
-
-    if (props.type === 'fill') {
+    } else if (props.type === 'fill') {
       const control = new UIFillControl();
 
       if (props.color) {
@@ -775,25 +727,39 @@ function parseUI(data: any) {
         }
       }
 
-      if (props.alpha && typeof props.alpha === 'number') {
-        control.setAlpha(props.alpha);
-      }
+      populateControl(control, name, props);
+      populateLayout(control, name, props);
 
-      if (props.size) {
-        if (Array.isArray(props.size) && props.size.length === 2) {
-          control.setSize(props.size);
+      if (Array.isArray(props.controls)) {
+        for (let i = 0; i < props.controls.length; i++) {
+          const e = Object.entries(props.controls[i])[0];
+          const c = createControl(e[0], e[1]);
+          if (c) control.addChildren(c);
         }
       }
 
-      if (props.offset) {
-        if (Array.isArray(props.offset) && props.offset.length === 2) {
-          control.setOffset(props.offset);
+      return control;
+    } else if (props.type === 'panel') {
+      const control = new UIPanelControl();
+
+      populateControl(control, name, props);
+      populateLayout(control, name, props);
+
+      if (Array.isArray(props.controls)) {
+        for (let i = 0; i < props.controls.length; i++) {
+          const e = Object.entries(props.controls[i])[0];
+          const c = createControl(e[0], e[1]);
+          if (c) control.addChildren(c);
         }
       }
 
-      if (typeof props.visible === 'boolean') {
-        control.setVisible(props.visible);
-      }
+      return control;
+    } else if (props.type === 'label') {
+      const control = new UITextControl();
+
+      populateControl(control, name, props);
+      populateLayout(control, name, props);
+      populateText(control, name, props);
 
       if (Array.isArray(props.controls)) {
         for (let i = 0; i < props.controls.length; i++) {
@@ -818,6 +784,224 @@ function parseUI(data: any) {
       els.push(c);
     }
   });
+}
+
+function parseColor(prop: any, call: (v: [number, number, number, number]) => void) {
+  if (prop) {
+    if (Array.isArray(prop)) {
+      if (prop.length === 3) {
+        call([...prop.map((c: number) => c * 255), 1.0] as any);
+      } else if (prop.length === 4) {
+        call(prop.map((c: number, i: number, arr: any[]) => (i + 1 < arr.length ? c * 255 : c)) as any);
+      } else if (prop.length > 4 || prop.length < 3) {
+        term.writeln('[ERROR] UI: ' + name + '; color property is a 3 or 4 length array');
+        return undefined;
+      }
+    } else if (typeof prop === 'string' && prop.startsWith('#')) {
+      const c = prop.trim().substring(1);
+      const co = parseInt(c, 16);
+
+      const alpha = (co >> 24) & 0xff;
+      const red = (co >> 16) & 0xff;
+      const green = (co >> 8) & 0xff;
+      const blue = (co >> 0) & 0xff;
+
+      call([red, green, blue, c.length === 8 ? Math.min(Math.max(alpha / 255, 0), 1.0) : 1.0]);
+    } else if (typeof prop === 'string') {
+      switch (prop) {
+        case 'blue':
+          call([0, 0, 255, 1.0]);
+          break;
+        case 'green':
+          call([0, 255, 0, 1.0]);
+          break;
+        case 'yellow':
+          call([255, 255, 0, 1.0]);
+          break;
+        case 'red':
+          call([255, 0, 0, 1.0]);
+          break;
+        case 'white':
+          call([255, 255, 255, 1.0]);
+          break;
+        case 'black':
+          call([0, 0, 0, 1.0]);
+          break;
+      }
+    }
+  }
+}
+
+function populateText(control: UITextControl, name: string, props: any) {
+  if (typeof props.text === 'string') {
+    control.setText(props.text);
+  }
+
+  if (typeof props.font_type === 'string') {
+    control.setFontType(props.font_type);
+  }
+
+  if (typeof props.shadow === 'boolean') {
+    control.setShadow(props.shadow);
+  }
+
+  if (typeof props.font_scale_factor === 'number') {
+    control.setFontScaleFactor(props.font_scale_factor);
+  }
+
+  parseColor(props.color, (v) => {
+    control.setColor(v);
+  });
+}
+
+function populateSprite(control: UISpriteControl, name: string, props: any) {
+  if (Array.isArray(props.uv) && props.uv.length === 2) {
+    control.setUV(props.uv);
+  }
+
+  if (Array.isArray(props.uv_size) && props.uv_size.length === 2) {
+    control.setUVSize(props.uv_size);
+  }
+
+  if (typeof props.texture === 'string') {
+    control.setTexture(props.texture);
+  }
+
+  if (typeof props.visible === 'boolean') {
+    control.setVisible(props.visible);
+  }
+
+  if (typeof props.grayscale === 'boolean') {
+    control.setGrayscale(props.grayscale);
+  }
+
+  if (typeof props.keep_ratio === 'boolean') {
+    control.setKeepRatio(props.keep_ratio);
+  }
+
+  if (typeof props.tiled === 'boolean') {
+    control.setTiled(props.tiled);
+  }
+
+  if (typeof props.clip_direction === 'string') {
+    switch (props.clip_direction) {
+      case 'up':
+        control.setClipDirection(ClipDirection.Up);
+        break;
+      case 'down':
+        control.setClipDirection(ClipDirection.Down);
+        break;
+      case 'left':
+        control.setClipDirection(ClipDirection.Left);
+        break;
+      case 'right':
+        control.setClipDirection(ClipDirection.Right);
+        break;
+    }
+  }
+
+  if (typeof props.clip_ratio === 'number') {
+    control.setClipRatio(props.clip_ratio);
+  }
+
+  if (Array.isArray(props.tiled_scale) && props.tiled_scale.length === 2) {
+    control.setTiledScale(props.tiled_scale);
+  }
+
+  if (typeof props.nineslice_size === 'number') {
+    const n = ~~props.nineslice_size;
+    control.setNinesliceSize([n, n, n, n]);
+  } else if (Array.isArray(props.nineslice_size) && props.nineslice_size.length === 4) {
+    control.setNinesliceSize(props.nineslice_size);
+  }
+}
+
+function populateLayout(control: UIControl, name: string, props: any) {
+  if (props.size) {
+    if (Array.isArray(props.size) && props.size.length === 2) {
+      control.setSize(props.size);
+    }
+  }
+
+  if (props.offset) {
+    if (Array.isArray(props.offset) && props.offset.length === 2) {
+      control.setOffset(props.offset);
+    }
+  }
+
+  if (typeof props.anchor_from === 'string') {
+    switch (props.anchor_from) {
+      case 'top_left':
+        control.setAnchorFrom('top_left');
+        break;
+      case 'top_middle':
+        control.setAnchorFrom('top_middle');
+        break;
+      case 'top_right':
+        control.setAnchorFrom('top_right');
+        break;
+      case 'left_middle':
+        control.setAnchorFrom('left_middle');
+        break;
+      case 'center':
+        control.setAnchorFrom('center');
+        break;
+      case 'right_middle':
+        control.setAnchorFrom('right_middle');
+        break;
+      case 'bottom_left':
+        control.setAnchorFrom('bottom_left');
+        break;
+      case 'bottom_middle':
+        control.setAnchorFrom('bottom_middle');
+        break;
+      case 'bottom_right':
+        control.setAnchorFrom('bottom_right');
+        break;
+    }
+  }
+
+  if (typeof props.anchor_to === 'string') {
+    switch (props.anchor_to) {
+      case 'top_left':
+        control.setAnchorTo('top_left');
+        break;
+      case 'top_middle':
+        control.setAnchorTo('top_middle');
+        break;
+      case 'top_right':
+        control.setAnchorTo('top_right');
+        break;
+      case 'left_middle':
+        control.setAnchorTo('left_middle');
+        break;
+      case 'center':
+        control.setAnchorTo('center');
+        break;
+      case 'right_middle':
+        control.setAnchorTo('right_middle');
+        break;
+      case 'bottom_left':
+        control.setAnchorTo('bottom_left');
+        break;
+      case 'bottom_middle':
+        control.setAnchorTo('bottom_middle');
+        break;
+      case 'bottom_right':
+        control.setAnchorTo('bottom_right');
+        break;
+    }
+  }
+}
+
+function populateControl(control: UIControl, name: string, props: any) {
+  if (typeof props.visible === 'boolean') {
+    control.setVisible(props.visible);
+  }
+
+  if (props.alpha && typeof props.alpha === 'number') {
+    control.setAlpha(props.alpha);
+  }
 }
 
 window.addEventListener('keydown', (e) => {
