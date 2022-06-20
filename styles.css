@@ -1,0 +1,295 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  height: 100vh;
+  background: #161616;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.app {
+  display: flex;
+  flex-direction: row;
+  width: 100vw;
+  height: 100vh;
+}
+
+.files {
+  display: flex;
+  flex-direction: row;
+  width: 55%;
+  height: 100vh;
+}
+
+#explorer {
+  width: 25%;
+  height: 100%;
+  background: #252526;
+}
+
+#editor {
+  width: 75%;
+  height: 100vh;
+}
+
+#image-previewer {
+  width: 75%;
+  height: 100vh;
+  display: none;
+  place-content: center;
+  place-items: center;
+}
+
+#image-previewer img {
+  max-width: 90%;
+}
+
+.display {
+  display: flex;
+  flex-direction: column;
+  width: 45%;
+  height: 100vh;
+}
+
+#screen {
+  width: 100%;
+  height: 70%;
+}
+
+#console {
+  width: 100%;
+  height: 30%;
+  background: black;
+  color: white;
+  overflow-y: auto;
+}
+
+#console::-webkit-scrollbar {
+  background: black;
+}
+
+#console::-webkit-scrollbar-thumb {
+  background: rgb(49, 49, 49);
+}
+
+#console::-webkit-scrollbar-thumb:hover {
+  background: rgb(70, 70, 70);
+}
+
+/*  */
+#explorer {
+  display: flex;
+  flex-direction: column;
+}
+
+#explorer-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid transparent;
+}
+
+#explorer-list.drag-over {
+  border: 1px solid #007FD4;
+}
+
+.file-item {
+  cursor: pointer;
+  background: none;
+  height: 22px;
+  border: 1px solid transparent;
+}
+
+.file-item:hover {
+  background: #2A2D2E;
+}
+
+.file-item:focus {
+  outline: none;
+  background: #094771;
+  border-color: #007FD4;
+}
+
+.file-item:active {
+  background: #094771;
+  border-color: #007FD4;
+}
+
+.file-item-content {
+  display: flex;
+  flex-direction: row;
+  padding: 0 1.2rem;
+  gap: 0 0.4rem;
+  place-items: center;
+}
+
+.file-icon img {
+  position: relative;
+  width: 16px;
+  top: 1px;
+}
+
+.file-label {
+  color: #DDD;
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  padding: 0.2rem 1.2rem;
+}
+
+.toolbar span {
+  color: #DDD;
+  font-size: 14px;
+  user-select: none;
+}
+
+.filler {
+  width: 100%;
+}
+
+.toolbar-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+  border: 1px solid transparent;
+  margin: 0 2px;
+}
+
+.toolbar-btn:hover {
+  background: #484b4d;
+}
+
+.toolbar-btn:active.codicon[class*='codicon-'] {
+  color: #DDD;
+}
+
+/*  */
+@font-face {
+	font-family: "codicon";
+	font-display: block;
+	src: url("./codicon.ttf?5d4d76ab2ce5108968ad644d591a16a6") format("truetype");
+}
+
+.codicon[class*='codicon-'] {
+	font: normal normal normal 16px/1 codicon;
+	display: inline-block;
+	text-decoration: none;
+	text-rendering: auto;
+	text-align: center;
+	text-transform: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+  color: #BBB;
+}
+
+/*  */
+.popup-bg {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #00000099;
+}
+
+#new-file-popup {
+  position: absolute;
+  display: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+#new-file-name {
+  background: #161616;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: white;
+  padding: 0.4rem 0.3rem;
+}
+
+.popup-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem 0;
+  position: absolute;
+  background: #2A2D2E;
+  top: 50%;
+  left: 50%;
+  padding: 1rem;
+  border-radius: 8px;
+  transform: translate(-50%, -50%);
+}
+
+#create-new-file {
+  cursor: pointer;
+  background: #525557;
+  color: #EEE;
+  border: 1px solid transparent;
+  padding: 0.4rem 1rem;
+}
+
+#create-new-file:hover {
+  background: #676b6d;
+}
+
+#cancel-new-file {
+  cursor: pointer;
+  background: #525557;
+  color: #EEE;
+  border: 1px solid transparent;
+  padding: 0.4rem 1rem;
+}
+
+#cancel-new-file:hover {
+  background: #676b6d;
+}
+
+/*  */
+
+.file-contextmenu {
+  min-width: 200px;
+  display: none;
+  flex-direction: column;
+  gap: 3px 0;
+  position: absolute;
+  background: #3C3C3C;
+  top: 0;
+  left: 0;
+  text-align: left;
+  padding: 0.4rem 0;
+}
+
+.ctxmenu-item {
+  background: transparent;
+  border: none;
+  color: #DDD;
+  cursor: pointer;
+  padding: 0 1rem;
+  height: 23px;
+  text-align: left;
+}
+
+.ctxmenu-item:hover {
+  background: #094771;
+}
+
+.file-contextmenu.locked .ctxmenu-item {
+  cursor: inherit;
+  background: transparent;
+  color: #888;
+}
+
+.file-contextmenu.locked .ctxmenu-item:hover {
+  background: transparent;
+}

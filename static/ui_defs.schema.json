@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "type": "object",
+  "properties": {
+    "ui_defs": {
+      "type": "array",
+      "description": "All ui files used",
+      "items": {
+        "type": "string",
+        "description": "UI file path begining from pack root"
+      }
+    }
+  }
+}

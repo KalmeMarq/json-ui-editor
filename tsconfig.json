@@ -6,18 +6,18 @@
     "strict": true,
     "strictNullChecks": true,
     "noFallthroughCasesInSwitch": true,
-    // "noImplicitReturns": true,
     "noImplicitThis": true,
     "noImplicitOverride": true,
     "noImplicitAny": true,
     "noPropertyAccessFromIndexSignature": true,
     "esModuleInterop": true,
+    "resolveJsonModule": true,
     "noEmit": true,
+    "types": [
+      "vite/client"
+    ],
     "rootDir": "./src",
-    "baseUrl": ".",
-    "paths": {
-      "@src/*": ["./src/*"]
-    }
+    "baseUrl": "."
   },
   "include": ["src"],
   "exclude": ["node_modules"]

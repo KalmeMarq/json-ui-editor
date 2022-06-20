@@ -1,25 +1,52 @@
 /* 
-  Very bad disorganized code. I'll clean it up later.
- */
+  Still very disorganized. I'll fix it in the next 6969696969696969 years.
+*/
 import * as monaco from 'monaco-editor';
-import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
+import { Application } from 'pixi.js';
 import stripJsonComments from 'strip-json-comments';
+import uiSchema from '../static/ui.schema.json?raw';
+import uiDefsSchema from '../static/ui_defs.schema.json?raw';
+import screenDefsSchema from '../static/screen_defs.schema.json?raw';
+import base from '../static/base.json?raw';
+import screenDefbase from '../static/screendef.base.json?raw';
+import globalVariablesBase from '../static/global_variables.base.json?raw';
+import uiDefsBase from '../static/ui_defs.base.json?raw';
+import { colorFromArray, colorFromHex, colorFromHSL, colorFromRGB, evalArea, parseColor, parseJsonC } from './utils';
+import { Color, UIFileDefinitionTree, UIFileDefinitionTreeElement, UIFileVisualTree, UIFileVisualTreeElement } from './types';
 
-export type FontSize = 'small' | 'normal' | 'large' | 'extra_large';
-export type TextAlignment = 'left' | 'center' | 'right';
-export type GradientDirection = 'vertical' | 'horizontal';
-export type AnchorPoint = 'top_left' | 'top_middle' | 'top_right' | 'left_middle' | 'center' | 'right_middle' | 'bottom_left' | 'bottom_middle' | 'bottom_right';
-export interface Renderer {
-  render(control: UICustomControl, renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void;
+//#region Debugging
+declare global {
+  interface Window {
+    colorFromArray: (color: Color) => Color;
+    colorFromHex: (color: string) => Color;
+    colorFromRGB: (color: string) => Color;
+    colorFromHSL: (color: string) => Color;
+    evalArea: (area: any, context: any) => any;
+    parseColor: any;
+  }
 }
+window.colorFromArray = colorFromArray;
+window.colorFromHex = colorFromHex;
+window.colorFromRGB = colorFromRGB;
+window.colorFromHSL = colorFromHSL;
+window.evalArea = evalArea;
+window.parseColor = parseColor;
+//#endregion
 
-const base = await (await fetch('base.json')).text();
-const editor = monaco.editor.create(document.getElementById('meh')!, {
+let uiDefsUri = new monaco.Uri();
+uiDefsUri = uiDefsUri.with({ path: '_ui_defs.json' });
+
+let screenDefsUri = new monaco.Uri();
+screenDefsUri = screenDefsUri.with({ path: '_screen_definitions.json' });
+
+const editor = monaco.editor.create(document.getElementById('editor')!, {
   value: base,
   language: 'json',
   tabSize: 2,
   folding: true,
+  minimap: {
+    enabled: false
+  },
   theme: 'vs-dark',
   automaticLayout: true
 });
@@ -31,1016 +58,469 @@ monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
   schemas: [
     {
       uri: 'ui',
-      fileMatch: ['*'],
-      schema: JSON.parse(stripJsonComments(await (await fetch('ui.schema.json')).text()))
+      fileMatch: ['*', '!_ui_defs.json', '!_screen_definitions.json'],
+      schema: JSON.parse(stripJsonComments(uiSchema))
+    },
+    {
+      uri: uiDefsUri.toString(),
+      fileMatch: ['_ui_defs.json'],
+      schema: JSON.parse(stripJsonComments(uiDefsSchema))
+    },
+    {
+      uri: screenDefsUri.toString(),
+      fileMatch: ['_screen_definitions.json'],
+      schema: JSON.parse(stripJsonComments(screenDefsSchema))
     }
   ]
 });
 
-const canvas = document.getElementById('canvas') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-ctx.canvas.width = 800;
-ctx.canvas.height = 600;
-ctx.fillStyle = 'red';
-ctx.fillRect(0, 0, 800, 600);
-ctx.scale(3, 3);
-ctx.imageSmoothingEnabled = false;
+const app = new Application({
+  width: 800,
+  height: 600,
+  view: document.getElementById('screen') as HTMLCanvasElement,
+  backgroundColor: 0xffffff
+});
 
-class UIControl {
-  _anchor_from: AnchorPoint = 'top_left';
-  _anchor_to: AnchorPoint = 'top_left';
-  _visible = true;
-  _offset: [number, number] = [0, 0];
-  _size: [number, number] = [-1, -1];
-  _alpha = 1;
-  _children: UIControl[] = [];
-
-  render(renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number) {}
-
-  setAlpha(alpha: number) {
-    this._alpha = alpha;
-  }
-
-  setAnchorFrom(anchor: AnchorPoint) {
-    this._anchor_from = anchor;
-  }
-
-  setAnchorTo(anchor: AnchorPoint) {
-    this._anchor_to = anchor;
-  }
-
-  setSize(size: [number, number]) {
-    this._size = size;
-  }
-
-  setOffset(offset: [number, number]) {
-    this._offset = offset;
-  }
-
-  setVisible(visible: boolean) {
-    this._visible = visible;
-  }
-
-  getVisible() {
-    return this._visible;
-  }
-
-  addChildren(child: UIControl) {
-    this._children.push(child);
-  }
-}
-
-let els: UIControl[] = [];
-
-class FillRenderer implements Renderer {
-  render(control: UICustomControl, renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
-    renderCtx.fillStyle = `rgba(${control._color[0]}, ${control._color[1]}, ${control._color[2]}, ${control._color[3]})`;
-
-    let w = screenWidth;
-    let h = screenHeight;
-
-    if (control._size[0] !== -1) {
-      w = control._size[0];
+let files: (
+  | {
+      type: 'text';
+      name: string;
+      data: string;
+      ctxmenu: boolean;
+      model: monaco.editor.ITextModel;
     }
-
-    if (control._size[1] !== -1) {
-      h = control._size[1];
+  | {
+      type: 'image';
+      name: string;
+      ctxmenu: boolean;
+      img: HTMLImageElement;
     }
-
-    renderCtx.globalAlpha = control._alpha;
-
-    renderCtx.fillRect(control._offset[0], control._offset[1], w, h);
-
-    renderCtx.globalAlpha = 1.0;
-  }
-}
-
-class GradientRenderer {
-  _gradient: CanvasGradient | null = null;
-
-  render(control: UICustomControl, renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
-    let w = screenWidth;
-    let h = screenHeight;
-
-    if (control._size[0] !== -1) {
-      w = control._size[0];
-    }
-
-    if (control._size[1] !== -1) {
-      h = control._size[1];
-    }
-
-    if (this._gradient === null) {
-      if (control._gradient_direction === 'vertical') {
-        this._gradient = renderCtx.createLinearGradient(control._offset[0], control._offset[1] + h, control._offset[0], control._offset[1]);
-        this._gradient.addColorStop(0, `rgba(${control._color2[0]}, ${control._color2[1]},${control._color2[2]}, ${control._color2[3]})`);
-        this._gradient.addColorStop(1, `rgba(${control._color1[0]}, ${control._color1[1]},${control._color1[2]}, ${control._color1[3]})`);
-      } else {
-        this._gradient = renderCtx.createLinearGradient(control._offset[0] + w, control._offset[1], control._offset[0], control._offset[1]);
-        this._gradient.addColorStop(0, `rgba(${control._color2[0]}, ${control._color2[1]},${control._color2[2]}, ${control._color2[3]})`);
-        this._gradient.addColorStop(1, `rgba(${control._color1[0]}, ${control._color1[1]},${control._color1[2]}, ${control._color1[3]})`);
-      }
-    }
-
-    ctx.fillStyle = this._gradient;
-    ctx.fillRect(control._offset[0], control._offset[1], w, h);
-  }
-}
-
-class RectangleArea {
-  x1 = 0;
-  y1 = 0;
-  x2 = 0;
-  y2 = 0;
-
-  setX1(x1: number) {
-    this.x1 = x1;
-  }
-
-  setX2(x2: number) {
-    this.x2 = x2;
-  }
-
-  setY1(y1: number) {
-    this.y1 = y1;
-  }
-
-  setY2(y2: number) {
-    this.y2 = y2;
-  }
-}
-
-class UIPanelControl extends UIControl {
-  override render(renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
-    for (let i = 0; i < this._children.length; ++i) {
-      this._children[i].render(renderCtx, screenWidth, screenHeight);
-    }
-  }
-}
-
-class UITextControl extends UIControl {
-  _text: string = '';
-  _color: [number, number, number, number] = [255, 255, 255, 1.0];
-  _shadow: boolean = false;
-  _text_alignment: TextAlignment | null = null;
-  _font_size: FontSize | null = null;
-  _font_scale_factor = 1;
-  _font_type = 'MinecraftiaRegular';
-
-  override render(renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
-    renderCtx.font = this._font_scale_factor * 5 + 'px ' + this._font_type;
-
-    const r = this._color[0];
-    const g = this._color[1];
-    const b = this._color[2];
-    const a = this._color[3];
-
-    if (this._shadow) {
-      renderCtx.fillStyle = `rgba(${r * 0.25},${g * 0.25},${b * 0.25},${a})`;
-      renderCtx.fillText(this._text, this._offset[0] + 1, this._offset[1] + 1 + 5);
-    }
-
-    renderCtx.fillStyle = `rgba(${r},${g},${b},${a})`;
-
-    renderCtx.fillText(this._text, this._offset[0], this._offset[1] + 5);
-
-    for (let i = 0; i < this._children.length; ++i) {
-      this._children[i].render(renderCtx, screenWidth, screenHeight);
-    }
-  }
-
-  setColor(color: [number, number, number, number]) {
-    this._color = color;
-  }
-
-  setShadow(shadow: boolean) {
-    this._shadow = shadow;
-  }
-
-  setText(text: string) {
-    this._text = text;
-  }
-
-  setTextAlignment(alignment: TextAlignment | null) {
-    this._text_alignment = alignment;
-  }
-
-  setFontSize(size: FontSize | null) {
-    this._font_size = size;
-  }
-
-  setFontType(font: string) {
-    this._font_type = font;
-  }
-
-  setFontScaleFactor(factor: number) {
-    this._font_scale_factor = factor;
-  }
-}
-
-class UICustomControl extends UIControl {
-  _custom_renderer: Renderer | null = null;
-  _gradient_direction: GradientDirection = 'vertical';
-  _color: [number, number, number, number] = [255, 255, 255, 1.0];
-  _color1: [number, number, number, number] = [255, 255, 255, 1.0];
-  _color2: [number, number, number, number] = [255, 255, 255, 1.0];
-
-  setRenderer(renderer: Renderer | null) {
-    this._custom_renderer = renderer;
-  }
-
-  setGradientDIrection(gradient_direction: GradientDirection) {
-    this._gradient_direction = gradient_direction;
-  }
-
-  setColor(color: [number, number, number, number]) {
-    this._color = color;
-  }
-
-  setColor1(color1: [number, number, number, number]) {
-    this._color1 = color1;
-  }
-
-  setColor2(color2: [number, number, number, number]) {
-    this._color2 = color2;
-  }
-
-  override render(renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
-    if (this._custom_renderer !== null) {
-      this._custom_renderer.render(this, renderCtx, screenWidth, screenHeight);
-    }
-
-    for (let i = 0; i < this._children.length; ++i) {
-      this._children[i].render(renderCtx, screenWidth, screenHeight);
-    }
-  }
-}
-
-class UIFillControl extends UIControl {
-  _color: [number, number, number, number] = [255, 255, 255, 1.0];
-
-  override render(renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number) {
-    if (!this._visible) return;
-    renderCtx.fillStyle = `rgba(${this._color[0]}, ${this._color[1]}, ${this._color[2]}, ${this._color[3]})`;
-
-    let w = screenWidth;
-    let h = screenHeight;
-
-    if (this._size[0] !== -1) {
-      w = this._size[0];
-    }
-
-    if (this._size[1] !== -1) {
-      h = this._size[1];
-    }
-
-    renderCtx.globalAlpha = this._alpha;
-
-    renderCtx.fillRect(this._offset[0], this._offset[1], w, h);
-
-    renderCtx.globalAlpha = 1.0;
-
-    for (let i = 0; i < this._children.length; ++i) {
-      this._children[i].render(renderCtx, screenWidth, screenHeight);
-    }
-  }
-
-  setColor(color: [number, number, number, number]) {
-    this._color = color;
-  }
-
-  getColor() {
-    return this._color;
-  }
-}
-
-export enum ClipDirection {
-  Left,
-  Right,
-  Up,
-  Down
-  // Center
-}
-
-const cacheTxrs: Record<
-  string,
+)[] = [
   {
-    img: HTMLImageElement;
-    imgGray: HTMLImageElement;
-    data: ImageData;
-    dataGray: ImageData;
-    width: number;
-    height: number;
+    type: 'text',
+    name: '_screen_definitions.json',
+    data: screenDefbase,
+    ctxmenu: false,
+    model: monaco.editor.createModel(screenDefbase, 'json', screenDefsUri)
+  },
+  {
+    type: 'text',
+    name: '_global_variables.json',
+    data: globalVariablesBase,
+    ctxmenu: false,
+    model: monaco.editor.createModel(globalVariablesBase, 'json')
+  },
+  {
+    type: 'text',
+    name: '_ui_defs.json',
+    data: uiDefsBase,
+    ctxmenu: false,
+    model: monaco.editor.createModel(uiDefsBase, 'json', uiDefsUri)
+  },
+  {
+    type: 'text',
+    name: 'start_screen.json',
+    data: base,
+    ctxmenu: false,
+    model: monaco.editor.createModel(base, 'json')
   }
-> = {};
+];
 
-class UISpriteControl extends UIControl {
-  _texture = '';
-  _nineslice_size: [number, number, number, number] | null = null;
-  _color: [number, number, number, number] = [255, 255, 255, 1.0];
-  _uv: [number, number] = [0, 0];
-  _uv_size: [number, number] = [-1, -1];
-  _grayscale = false;
-  _keep_ratio = false;
-  _tiled = false;
-  _tiled_scale = [1, 1];
-  _clip_ratio = 1.0;
-  _clip_direction: ClipDirection = ClipDirection.Left;
+const explorer = document.getElementById('explorer-list') as HTMLDivElement;
+const consoleEl = document.getElementById('console') as HTMLDivElement;
+explorer.innerHTML = '';
+const fileCtxMenu = document.getElementById('file-contextmenu')!;
 
-  setTexture(texture: string) {
-    this._texture = texture;
+editor.setModel((files.find((f) => f.name === 'start_screen.json') as any).model);
 
-    if (cacheTxrs[texture] === undefined) {
-      if (texture.startsWith('data:')) {
-        const image = new Image();
-        image.src = texture;
+function writeToConsole(text: string) {
+  const p = document.createElement('p');
+  p.innerHTML = text;
+  consoleEl.appendChild(p);
+  p.scrollIntoView();
+}
 
-        image.onload = () => {
-          const c = document.createElement('canvas');
-          c.width = image.width;
-          c.height = image.height;
-          const ct = c.getContext('2d') as CanvasRenderingContext2D;
-          ct.drawImage(image, 0, 0);
+(window as any).writeToConsole = writeToConsole;
 
-          const width = image.width;
-          const height = image.height;
-          const img = image;
-          const data = ct.getImageData(0, 0, image.width, image.height);
-
-          const dataGray = ct.getImageData(0, 0, image.width, image.height);
-
-          for (let i = 0; i < dataGray.data.length; i += 4) {
-            let lightness = ~~((dataGray.data[i] + dataGray.data[i + 1] + dataGray.data[i + 2]) / 3);
-
-            dataGray.data[i] = lightness;
-            dataGray.data[i + 1] = lightness;
-            dataGray.data[i + 2] = lightness;
-          }
-
-          ct.putImageData(dataGray, 0, 0);
-
-          const im = new Image();
-
-          im.src = c.toDataURL();
-          im.onload = () => {
-            cacheTxrs[texture] = {
-              width,
-              height,
-              img,
-              imgGray: im,
-              data,
-              dataGray: dataGray
-            };
-          };
-
-          c.remove();
-        };
-      } else if (texture.startsWith('http')) {
-        fetch(texture)
-          .then((res) => res.blob())
-          .then((data) => {
-            const image = new Image();
-            image.src = URL.createObjectURL(data);
-
-            image.onload = () => {
-              const c = document.createElement('canvas');
-              c.width = image.width;
-              c.height = image.height;
-              const ct = c.getContext('2d') as CanvasRenderingContext2D;
-              ct.drawImage(image, 0, 0);
-
-              const width = image.width;
-              const height = image.height;
-              const img = image;
-              const data = ct.getImageData(0, 0, image.width, image.height);
-
-              const dataGray = ct.getImageData(0, 0, image.width, image.height);
-
-              for (let i = 0; i < dataGray.data.length; i += 4) {
-                let lightness = ~~((dataGray.data[i] + dataGray.data[i + 1] + dataGray.data[i + 2]) / 3);
-
-                dataGray.data[i] = lightness;
-                dataGray.data[i + 1] = lightness;
-                dataGray.data[i + 2] = lightness;
-              }
-
-              ct.putImageData(dataGray, 0, 0);
-
-              const im = new Image();
-
-              im.src = c.toDataURL();
-              im.onload = () => {
-                cacheTxrs[texture] = {
-                  width,
-                  height,
-                  img,
-                  imgGray: im,
-                  data,
-                  dataGray: dataGray
-                };
-              };
-
-              c.remove();
-            };
-          })
-          .catch((e) => {});
-      }
-    }
+window.addEventListener('click', (e) => {
+  if (document.activeElement?.id !== fileCtxMenu.id) {
+    fileCtxMenu.style.display = 'none';
+    selected = '';
+    fileCtxMenu.classList.toggle('locked', false);
   }
+});
 
-  setUV(uv: [number, number]) {
-    this._uv = uv;
-  }
+let selected = '';
 
-  setUVSize(uv_size: [number, number]) {
-    this._uv_size = uv_size;
-  }
+function refreshExplorer() {
+  explorer.innerHTML = '';
+  files.forEach((file) => {
+    createFile(file);
+  });
+}
 
-  setColor(color: [number, number, number, number]) {
-    this._color = color;
-  }
+document.getElementById('ctxmenu-delete')?.addEventListener('click', () => {
+  if (selected !== '' && selected !== '_screen_definitions.json' && selected !== '_global_variable.json' && selected !== '_ui_defs.json' && selected !== 'start_screen.json') {
+    const file = files.find((f) => f.name === selected);
 
-  setGrayscale(grayscale: boolean) {
-    this._grayscale = grayscale;
-  }
-
-  setTiled(tiled: boolean) {
-    this._tiled = tiled;
-  }
-
-  setClipDirection(clip_direction: ClipDirection) {
-    this._clip_direction = clip_direction;
-  }
-
-  setClipRatio(clip_ratio: number) {
-    this._clip_ratio = Math.max(Math.min(1.0, clip_ratio), 0);
-  }
-
-  setTiledScale(tiled_scale: [number, number]) {
-    this._tiled_scale = tiled_scale;
-  }
-
-  setNinesliceSize(nineslice_size: [number, number, number, number] | null) {
-    this._nineslice_size = nineslice_size;
-  }
-
-  setKeepRatio(keep_ratio: boolean) {
-    this._keep_ratio = keep_ratio;
-  }
-
-  override render(renderCtx: CanvasRenderingContext2D, screenWidth: number, screenHeight: number): void {
-    if (!this._visible) return;
-
-    const ct = cacheTxrs[this._texture];
-
-    if (ct !== undefined) {
-      if (this._tiled) {
-        const w = this._size[0] !== -1 ? this._size[0] : screenWidth;
-        const h = this._size[1] !== -1 ? this._size[1] : screenHeight;
-
-        const tw = ct.width * this._tiled_scale[0];
-        const th = ct.height * this._tiled_scale[1];
-
-        const nX = Math.ceil(w / tw);
-        const nY = Math.ceil(h / th);
-
-        for (let px = 0; px < nX; ++px) {
-          for (let py = 0; py < nY; ++py) {
-            const u = this._uv_size[0] === -1 ? ct.width : this._uv_size[0];
-            const v = this._uv_size[1] === -1 ? ct.height : this._uv_size[1];
-
-            renderCtx.drawImage(
-              this._grayscale ? ct.imgGray : ct.img,
-              this._uv[0],
-              this._uv[1],
-              px + 1 < nX ? u : u * (w / tw - nX),
-              py + 1 < nY ? v : v * (h / th - nY),
-              this._offset[0] + px * tw,
-              this._offset[1] + py * th,
-              px + 1 < nX ? tw : tw * (w / tw - nX),
-              py + 1 < nY ? th : th * (h / th - nY)
-            );
-          }
-        }
-      } else if (this._nineslice_size !== null) {
-        const x1 = this._nineslice_size[0];
-        const y1 = this._nineslice_size[1];
-        const x2 = this._nineslice_size[2];
-        const y2 = this._nineslice_size[3];
-
-        let w = this._size[0] === -1 ? screenWidth : this._size[0];
-        let h = this._size[1] === -1 ? screenHeight : this._size[1];
-
-        const x = this._offset[0];
-        const y = this._offset[1];
-
-        // Top Left
-        renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, 0, 0, x1, y1, x, y, x1, y1);
-        // Top Right
-        renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, ct.width - x2, 0, x2, y1, x + w - x2, y, x1, y1);
-        // Top Middle
-        renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, x1, 0, ct.width - x1 - x2, y1, x + x1, y, w - x1 - x2, y1);
-
-        // Left Middle
-        renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, 0, y1, x1, ct.height - y1 - y2, x, y + y1, x1, h - y1 - y2);
-        // Right Middle
-        renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, ct.width - x2, y1, x2, ct.height - y1 - y2, x + w - x2, y + y1, x2, h - y1 - y2);
-
-        // Bottom Left
-        renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, 0, ct.height - y2, x1, y2, x, y + h - y2, x1, y2);
-        // Bottom Right
-        renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, ct.width - x2, ct.height - y2, x2, y2, x + w - x2, y + h - y2, x1, y2);
-        // Bottom Middle
-        renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, x1, ct.height - y2, ct.width - x1 - x2, y1, x + x1, y + h - y2, w - x1 - x2, y1);
-
-        // Center
-        renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, x1, y1, ct.width - x1 - x2, ct.height - y1 - y2, x + x1, y + y1, w - x1 - x2, h - y1 - y2);
-      } else {
-        let w = this._size[0] === -1 ? ct.width : this._size[0];
-        let h = this._size[1] === -1 ? ct.height : this._size[1];
-
-        if (this._keep_ratio) {
-          if (w >= h) {
-            h = w * (ct.width / ct.height);
-          }
-
-          if (h > w) {
-            w = h * (ct.height / ct.width);
-          }
-        }
-
-        const u = this._uv[0];
-        const v = this._uv[1];
-        const uw = this._uv_size[0] === -1 ? ct.width : this._uv_size[0];
-        const vh = this._uv_size[1] === -1 ? ct.height : this._uv_size[1];
-        const x = this._offset[0];
-        const y = this._offset[1];
-
-        const cr = this._clip_ratio;
-
-        if (cr !== 1) {
-          switch (this._clip_direction) {
-            case ClipDirection.Left:
-              renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, u, v, uw * cr, vh, x, y, w * cr, h);
-              break;
-            case ClipDirection.Right:
-              renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, u + (uw - uw * cr), v, uw * cr, vh, x + (uw - uw * cr), y, w * cr, h);
-              break;
-          }
+    if (file) {
+      files = files.filter((f) => f.name !== selected);
+      for (let i = files.length - 1; i >= 0; i--) {
+        if (files[i].type === 'text') {
+          editor.setModel((files[i] as any).model);
+          break;
         } else {
-          renderCtx.drawImage(this._grayscale ? ct.imgGray : ct.img, u, v, uw, vh, x, y, w, h);
+          continue;
         }
       }
-    }
-
-    for (let i = 0; i < this._children.length; ++i) {
-      this._children[i].render(renderCtx, screenWidth, screenHeight);
+      refreshExplorer();
     }
   }
-}
+});
 
-function parseUI(data: any) {
-  els = [];
+function createFile(file: { type: 'text'; model: monaco.editor.ITextModel; name: string; ctxmenu: boolean } | { type: 'image'; img: HTMLImageElement; name: string; ctxmenu: boolean }) {
+  const btn = document.createElement('button');
+  btn.className = 'file-item';
+  btn.id = file.name;
+  btn.title = file.name;
 
-  if (data.namespace === undefined) {
-    term.writeln('[ERROR] UI: namespace is missing.');
-    return;
-  }
+  btn.addEventListener('click', () => {
+    if (file.type === 'text') {
+      document.getElementById('editor')!.style.display = 'block';
+      document.getElementById('image-previewer')!.style.display = 'none';
+      document.getElementById('image-previewer')!.innerHTML = '';
+      editor.setModel(file.model);
+    } else if (file.type === 'image') {
+      document.getElementById('editor')!.style.display = 'none';
+      document.getElementById('image-previewer')!.style.display = 'flex';
+      document.getElementById('image-previewer')!.innerHTML = '';
 
-  delete data.namespace;
-
-  function createControl(name: any, props: any): UIControl | undefined {
-    if (props.ignored) return undefined;
-
-    if (props.type === 'custom') {
-      const control = new UICustomControl();
-
-      if (props.alpha && typeof props.alpha === 'number') {
-        control.setAlpha(props.alpha);
-      }
-
-      if (typeof props.renderer === 'string') {
-        switch (props.renderer) {
-          case 'fill_renderer':
-            control.setRenderer(new FillRenderer());
-            break;
-          case 'gradient_renderer':
-            control.setRenderer(new GradientRenderer());
-            break;
-          default:
-            term.writeln('[ERROR] UI: ' + name + '; renderer[' + props.renderer + '] is not a valid.');
-            break;
-        }
-      }
-
-      populateControl(control, name, props);
-      populateLayout(control, name, props);
-
-      if (typeof props.gradient_direction === 'string') {
-        switch (props.gradient_direction) {
-          case 'vertical':
-            control.setGradientDIrection('vertical');
-            break;
-          case 'horizontal':
-            control.setGradientDIrection('horizontal');
-            break;
-        }
-      }
-
-      if (props.color) {
-        if (Array.isArray(props.color)) {
-          if (props.color.length === 3) {
-            control.setColor([...props.color.map((c: number) => c * 255), 1.0] as any);
-          } else if (props.color.length === 4) {
-            control.setColor(props.color.map((c: number, i: number, arr: any[]) => (i + 1 < arr.length ? c * 255 : c)));
-          } else if (props.color.length > 4 || props.color.length < 3) {
-            term.writeln('[ERROR] UI: ' + name + '; color property is a 3 or 4 length array');
-            return undefined;
-          }
-        } else if (typeof props.color === 'string' && props.color.startsWith('#')) {
-          const c = props.color.trim().substring(1);
-          const co = parseInt(c, 16);
-
-          const alpha = (co >> 24) & 0xff;
-          const red = (co >> 16) & 0xff;
-          const green = (co >> 8) & 0xff;
-          const blue = (co >> 0) & 0xff;
-
-          control.setColor([red, green, blue, c.length === 8 ? Math.min(Math.max(alpha / 255, 0), 1.0) : 1.0]);
-        }
-      }
-
-      parseColor(props.color, (v) => control.setColor(v));
-      parseColor(props.color1, (v) => control.setColor1(v));
-      parseColor(props.color2, (v) => control.setColor2(v));
-
-      if (Array.isArray(props.controls)) {
-        for (let i = 0; i < props.controls.length; i++) {
-          const e = Object.entries(props.controls[i])[0];
-          const c = createControl(e[0], e[1]);
-          if (c) control.addChildren(c);
-        }
-      }
-
-      return control;
-    } else if (props.type === 'image') {
-      const control = new UISpriteControl();
-
-      parseColor(props.color, (v) => control.setColor(v));
-
-      populateControl(control, name, props);
-      populateLayout(control, name, props);
-      populateSprite(control, name, props);
-
-      if (Array.isArray(props.controls)) {
-        for (let i = 0; i < props.controls.length; i++) {
-          const e = Object.entries(props.controls[i])[0];
-          const c = createControl(e[0], e[1]);
-          if (c) control.addChildren(c);
-        }
-      }
-
-      return control;
-    } else if (props.type === 'fill') {
-      const control = new UIFillControl();
-
-      if (props.color) {
-        if (Array.isArray(props.color)) {
-          if (props.color.length === 3) {
-            control.setColor([...props.color.map((c: number) => c * 255), 1.0] as any);
-          } else if (props.color.length === 4) {
-            control.setColor(props.color.map((c: number, i: number, arr: any[]) => (i + 1 < arr.length ? c * 255 : c)));
-          } else if (props.color.length > 4 || props.color.length < 3) {
-            term.writeln('[ERROR] UI: ' + name + '; color property is a 3 or 4 length array');
-            return undefined;
-          }
-        } else if (typeof props.color === 'string' && props.color.startsWith('#')) {
-          const c = props.color.trim().substring(1);
-          const co = parseInt(c, 16);
-
-          const alpha = (co >> 24) & 0xff;
-          const red = (co >> 16) & 0xff;
-          const green = (co >> 8) & 0xff;
-          const blue = (co >> 0) & 0xff;
-
-          control.setColor([red, green, blue, c.length === 8 ? Math.min(Math.max(alpha / 255, 0), 1.0) : 1.0]);
-        }
-      }
-
-      populateControl(control, name, props);
-      populateLayout(control, name, props);
-
-      if (Array.isArray(props.controls)) {
-        for (let i = 0; i < props.controls.length; i++) {
-          const e = Object.entries(props.controls[i])[0];
-          const c = createControl(e[0], e[1]);
-          if (c) control.addChildren(c);
-        }
-      }
-
-      return control;
-    } else if (props.type === 'panel') {
-      const control = new UIPanelControl();
-
-      populateControl(control, name, props);
-      populateLayout(control, name, props);
-
-      if (Array.isArray(props.controls)) {
-        for (let i = 0; i < props.controls.length; i++) {
-          const e = Object.entries(props.controls[i])[0];
-          const c = createControl(e[0], e[1]);
-          if (c) control.addChildren(c);
-        }
-      }
-
-      return control;
-    } else if (props.type === 'label') {
-      const control = new UITextControl();
-
-      populateControl(control, name, props);
-      populateLayout(control, name, props);
-      populateText(control, name, props);
-
-      if (Array.isArray(props.controls)) {
-        for (let i = 0; i < props.controls.length; i++) {
-          const e = Object.entries(props.controls[i])[0];
-          const c = createControl(e[0], e[1]);
-          if (c) control.addChildren(c);
-        }
-      }
-
-      return control;
-    }
-
-    if (props.type === undefined) {
-      term.writeln('[ERROR] UI: ' + name + '; type is required.');
-    }
-  }
-
-  Object.entries<any>(data).forEach(([name, props]) => {
-    const c = createControl(name, props);
-
-    if (c) {
-      els.push(c);
+      document.getElementById('image-previewer')!.appendChild(file.img);
     }
   });
-}
 
-function parseColor(prop: any, call: (v: [number, number, number, number]) => void) {
-  if (prop) {
-    if (Array.isArray(prop)) {
-      if (prop.length === 3) {
-        call([...prop.map((c: number) => c * 255), 1.0] as any);
-      } else if (prop.length === 4) {
-        call(prop.map((c: number, i: number, arr: any[]) => (i + 1 < arr.length ? c * 255 : c)) as any);
-      } else if (prop.length > 4 || prop.length < 3) {
-        term.writeln('[ERROR] UI: ' + name + '; color property is a 3 or 4 length array');
-        return undefined;
-      }
-    } else if (typeof prop === 'string' && prop.startsWith('#')) {
-      const c = prop.trim().substring(1);
-      const co = parseInt(c, 16);
+  btn.addEventListener('contextmenu', (e) => {
+    const rect = btn.getBoundingClientRect();
+    fileCtxMenu.style.top = rect.top + 'px';
+    fileCtxMenu.style.left = e.clientX + 'px';
+    fileCtxMenu.style.display = 'flex';
+    selected = file.name;
 
-      const alpha = (co >> 24) & 0xff;
-      const red = (co >> 16) & 0xff;
-      const green = (co >> 8) & 0xff;
-      const blue = (co >> 0) & 0xff;
-
-      call([red, green, blue, c.length === 8 ? Math.min(Math.max(alpha / 255, 0), 1.0) : 1.0]);
-    } else if (typeof prop === 'string') {
-      switch (prop) {
-        case 'blue':
-          call([0, 0, 255, 1.0]);
-          break;
-        case 'green':
-          call([0, 255, 0, 1.0]);
-          break;
-        case 'yellow':
-          call([255, 255, 0, 1.0]);
-          break;
-        case 'red':
-          call([255, 0, 0, 1.0]);
-          break;
-        case 'white':
-          call([255, 255, 255, 1.0]);
-          break;
-        case 'black':
-          call([0, 0, 0, 1.0]);
-          break;
-      }
-    }
-  }
-}
-
-function populateText(control: UITextControl, name: string, props: any) {
-  if (typeof props.text === 'string') {
-    control.setText(props.text);
-  }
-
-  if (typeof props.font_type === 'string') {
-    control.setFontType(props.font_type);
-  }
-
-  if (typeof props.shadow === 'boolean') {
-    control.setShadow(props.shadow);
-  }
-
-  if (typeof props.font_scale_factor === 'number') {
-    control.setFontScaleFactor(props.font_scale_factor);
-  }
-
-  parseColor(props.color, (v) => {
-    control.setColor(v);
+    fileCtxMenu.classList.toggle('locked', !file.ctxmenu);
   });
+
+  const cont = document.createElement('div');
+  cont.className = 'file-item-content';
+  const ficon = document.createElement('div');
+  ficon.className = 'file-icon';
+  ficon.innerHTML = '<img src="icons/file_type_' + (file.type === 'text' ? 'json' : 'image') + '.svg">';
+  const flabel = document.createElement('div');
+  flabel.className = 'file-label';
+  flabel.textContent = file.name;
+
+  cont.appendChild(ficon);
+  cont.appendChild(flabel);
+  btn.appendChild(cont);
+
+  explorer.appendChild(btn);
 }
 
-function populateSprite(control: UISpriteControl, name: string, props: any) {
-  if (Array.isArray(props.uv) && props.uv.length === 2) {
-    control.setUV(props.uv);
-  }
+files.forEach((file) => {
+  createFile(file);
+});
 
-  if (Array.isArray(props.uv_size) && props.uv_size.length === 2) {
-    control.setUVSize(props.uv_size);
-  }
+explorer.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+});
 
-  if (typeof props.texture === 'string') {
-    control.setTexture(props.texture);
-  }
+const newFilePopup = document.getElementById('new-file-popup') as HTMLDivElement;
+const newFileInput = document.getElementById('new-file-name') as HTMLInputElement;
 
-  if (typeof props.visible === 'boolean') {
-    control.setVisible(props.visible);
-  }
+document.getElementById('new-file')!.addEventListener('click', () => {
+  newFilePopup.style.display = 'block';
+  newFileInput.value = '';
+  newFileInput.focus();
+});
 
-  if (typeof props.grayscale === 'boolean') {
-    control.setGrayscale(props.grayscale);
-  }
+document.getElementById('refresh-explorer')!.addEventListener('click', () => {
+  refreshExplorer();
+});
 
-  if (typeof props.keep_ratio === 'boolean') {
-    control.setKeepRatio(props.keep_ratio);
-  }
+document.getElementById('create-new-file')!.addEventListener('click', () => {
+  if (newFileInput.value.length > 0 && files.every((f) => newFileInput.value !== f.name)) {
+    const model = monaco.editor.createModel('', 'json');
 
-  if (typeof props.tiled === 'boolean') {
-    control.setTiled(props.tiled);
-  }
+    const obj: any = {
+      type: 'text',
+      name: newFileInput.value,
+      data: '',
+      ctxmenu: true,
+      model
+    };
+    files.push(obj);
 
-  if (typeof props.clip_direction === 'string') {
-    switch (props.clip_direction) {
-      case 'up':
-        control.setClipDirection(ClipDirection.Up);
-        break;
-      case 'down':
-        control.setClipDirection(ClipDirection.Down);
-        break;
-      case 'left':
-        control.setClipDirection(ClipDirection.Left);
-        break;
-      case 'right':
-        control.setClipDirection(ClipDirection.Right);
-        break;
-    }
-  }
+    createFile(obj);
+    newFilePopup.style.display = 'none';
+    newFileInput.value = '';
 
-  if (typeof props.clip_ratio === 'number') {
-    control.setClipRatio(props.clip_ratio);
+    editor.setModel(model);
   }
+});
 
-  if (Array.isArray(props.tiled_scale) && props.tiled_scale.length === 2) {
-    control.setTiledScale(props.tiled_scale);
-  }
-
-  if (typeof props.nineslice_size === 'number') {
-    const n = ~~props.nineslice_size;
-    control.setNinesliceSize([n, n, n, n]);
-  } else if (Array.isArray(props.nineslice_size) && props.nineslice_size.length === 4) {
-    control.setNinesliceSize(props.nineslice_size);
-  }
-}
-
-function populateLayout(control: UIControl, name: string, props: any) {
-  if (props.size) {
-    if (Array.isArray(props.size) && props.size.length === 2) {
-      control.setSize(props.size);
-    }
-  }
-
-  if (props.offset) {
-    if (Array.isArray(props.offset) && props.offset.length === 2) {
-      control.setOffset(props.offset);
-    }
-  }
-
-  if (typeof props.anchor_from === 'string') {
-    switch (props.anchor_from) {
-      case 'top_left':
-        control.setAnchorFrom('top_left');
-        break;
-      case 'top_middle':
-        control.setAnchorFrom('top_middle');
-        break;
-      case 'top_right':
-        control.setAnchorFrom('top_right');
-        break;
-      case 'left_middle':
-        control.setAnchorFrom('left_middle');
-        break;
-      case 'center':
-        control.setAnchorFrom('center');
-        break;
-      case 'right_middle':
-        control.setAnchorFrom('right_middle');
-        break;
-      case 'bottom_left':
-        control.setAnchorFrom('bottom_left');
-        break;
-      case 'bottom_middle':
-        control.setAnchorFrom('bottom_middle');
-        break;
-      case 'bottom_right':
-        control.setAnchorFrom('bottom_right');
-        break;
-    }
-  }
-
-  if (typeof props.anchor_to === 'string') {
-    switch (props.anchor_to) {
-      case 'top_left':
-        control.setAnchorTo('top_left');
-        break;
-      case 'top_middle':
-        control.setAnchorTo('top_middle');
-        break;
-      case 'top_right':
-        control.setAnchorTo('top_right');
-        break;
-      case 'left_middle':
-        control.setAnchorTo('left_middle');
-        break;
-      case 'center':
-        control.setAnchorTo('center');
-        break;
-      case 'right_middle':
-        control.setAnchorTo('right_middle');
-        break;
-      case 'bottom_left':
-        control.setAnchorTo('bottom_left');
-        break;
-      case 'bottom_middle':
-        control.setAnchorTo('bottom_middle');
-        break;
-      case 'bottom_right':
-        control.setAnchorTo('bottom_right');
-        break;
-    }
-  }
-}
-
-function populateControl(control: UIControl, name: string, props: any) {
-  if (typeof props.visible === 'boolean') {
-    control.setVisible(props.visible);
-  }
-
-  if (props.alpha && typeof props.alpha === 'number') {
-    control.setAlpha(props.alpha);
-  }
-}
+document.getElementById('cancel-new-file')!.addEventListener('click', () => {
+  newFilePopup.style.display = 'none';
+  newFileInput.value = '';
+});
 
 window.addEventListener('keydown', (e) => {
-  if (e.ctrlKey && e.code === 'KeyW') {
-    e.preventDefault();
-  }
   if (e.ctrlKey && e.code === 'KeyS') {
     e.preventDefault();
+    processUI();
+  }
+});
+
+let uiFiles: Record<string, any> = {};
+let screenDefinitions: Record<string, { id: string; target: string }> = {};
+
+function parseUITreeElement(namespace: string, name: string, props: any) {
+  let el_namespace = namespace;
+  let el_name = name.split('@')[0];
+  let el_super = name.split('@')[1] ?? '';
+  let el_super_namespace = '';
+  let el_props = props as any;
+
+  if (el_super !== undefined) {
+    el_super = el_super.includes('.') ? el_super.split('.')[0] : el_super;
+    el_super_namespace = el_super.includes('.') ? el_super.split('.')[0] : el_namespace;
+  }
+
+  let children: UIFileDefinitionTreeElement[] = [];
+
+  if (el_props.controls !== undefined && Array.isArray(el_props.controls)) {
+    el_props.controls.forEach((e: any) => {
+      const c = Object.entries(e)[0];
+      children.push(parseUITreeElement(namespace, c[0] as string, c[1] as any));
+    });
+
+    el_props.controls = children;
+  }
+
+  return {
+    name: el_name,
+    namespace: el_namespace,
+    super: el_super,
+    super_namespace: el_super_namespace,
+    properties: el_props
+  };
+}
+
+function parseUIVisualTree() {
+  Object.entries(uiFiles).forEach(([namespace, data]) => {
+    const tree: UIFileVisualTree = {};
+
+    Object.entries<UIFileDefinitionTreeElement>(data).forEach(([el_name, el_data]) => {
+      // console.log(el_name, el_data);
+
+      if (el_data.super !== '') {
+        // console.log(uiFiles[el_data.super_namespace][el_data.super]);
+      } else {
+        const obj: UIFileVisualTreeElement = {
+          name: el_name,
+          namespace: el_data.namespace,
+          full_name: `${el_name}${el_data.super === '' ? '' : `@${el_data.super_namespace}.${el_data.super}`}`,
+          properties: el_data.properties
+        };
+
+        console.log(obj);
+      }
+    });
+  });
+}
+
+function parseUITree(rootElement: string) {
+  const nm = rootElement.split('.')[0];
+  const target = rootElement.split('.')[1];
+
+  // if (uiFiles[nm] === undefined) {
+  //   writeToConsole('[ERROR] UI: ' + nm + ' namespace does not exist.');
+  //   return;
+  // }
+
+  // console.log(uiFiles[nm]);
+  // if (uiFiles[nm][target] === undefined) {
+  //   writeToConsole('[ERROR] UI: ' + nm + '.' + target + ' element does not exist.');
+  //   return;
+  // }
+
+  Object.entries(uiFiles).forEach(([namespace, data]) => {
+    const tree: UIFileDefinitionTree = {};
+
+    Object.entries(data).forEach(([name, props]) => {
+      let el_namespace = namespace;
+      let el_name = name.split('@')[0];
+      let el_super = name.split('@')[1] ?? '';
+      let el_super_namespace = '';
+      let el_props = props as any;
+
+      if (el_super !== undefined) {
+        el_super = el_super.includes('.') ? el_super.split('.')[0] : el_super;
+        el_super_namespace = el_super.includes('.') ? el_super.split('.')[0] : el_namespace;
+      }
+
+      let children: UIFileDefinitionTreeElement[] = [];
+
+      if (el_props.controls !== undefined && Array.isArray(el_props.controls)) {
+        el_props.controls.forEach((e: any) => {
+          const c = Object.entries(e)[0];
+          children.push(parseUITreeElement(nm, c[0] as string, c[1] as any));
+        });
+
+        el_props.controls = children;
+      }
+
+      tree[el_name] = {
+        name: el_name,
+        namespace: el_namespace,
+        super: el_super,
+        super_namespace: el_super_namespace,
+        properties: el_props
+      };
+    });
+
+    uiFiles[namespace] = tree;
+  });
+
+  parseUIVisualTree();
+}
+
+function processUI() {
+  const uiDefs = files.find((f) => f.name === '_ui_defs.json')!;
+
+  if (uiDefs.type !== 'text') return;
+
+  try {
+    const ui_defs = parseJsonC(uiDefs.model.getValue()).ui_defs as string[];
+
+    console.log(ui_defs);
+
+    uiFiles = {};
+    screenDefinitions = {};
+
+    ui_defs.forEach((def) => {
+      const defF = files.find((f) => f.name === def);
+
+      if (defF?.type !== 'text') return;
+
+      if (defF) {
+        try {
+          const fl = parseJsonC(defF.model.getValue());
+          const nm = fl.namespace;
+          delete fl.namespace;
+          uiFiles[nm] = fl;
+        } catch (e) {
+          if (e instanceof Error) {
+            writeToConsole('[ERROR] UI: Failed to parse ' + def + ':');
+            writeToConsole('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + e.message);
+            return;
+          }
+        }
+      }
+    });
 
     try {
-      const data = JSON.parse(stripJsonComments(editor.getValue()));
-      parseUI(data);
+      const screenDefs = files.find((f) => f.name === '_screen_definitions.json')!;
+      if (screenDefs.type !== 'text') return;
+
+      const screen_defs = parseJsonC(screenDefs.model.getValue()).screen_definitions;
+
+      screen_defs.screens.forEach((def: { id: string; target: string }) => {
+        screenDefinitions[def.id] = { id: def.id, target: def.target };
+      });
+
+      const s = screenDefinitions[screen_defs.default];
+      parseUITree(s.target);
     } catch (e) {
       if (e instanceof Error) {
-        term.writeln(e.message);
+        writeToConsole('[ERROR] UI: Failed to parse _screen_definitions.json:');
+        writeToConsole('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + e.message);
+        return;
+      }
+    }
+  } catch (e) {
+    if (e instanceof Error) {
+      writeToConsole(e.message);
+      return;
+    }
+  }
+}
+
+processUI();
+
+explorer.addEventListener('drag', (e) => {
+  e.preventDefault();
+});
+
+explorer.addEventListener('dragover', (e) => {
+  e.preventDefault();
+});
+
+explorer.addEventListener('dragend', (e) => {
+  e.preventDefault();
+  explorer.classList.remove('drag-over');
+});
+
+explorer.addEventListener('dragenter', (e) => {
+  e.preventDefault();
+  explorer.classList.add('drag-over');
+});
+
+explorer.addEventListener('dragleave', (e) => {
+  e.preventDefault();
+  explorer.classList.remove('drag-over');
+});
+
+explorer.addEventListener('drop', (e) => {
+  e.preventDefault();
+  explorer.classList.remove('drag-over');
+
+  if (e.dataTransfer) {
+    for (let i = 0; i < e.dataTransfer.files.length; i++) {
+      const j = e.dataTransfer.files[i];
+      const name = j.name;
+
+      if (j.type === 'image/png') {
+        j.arrayBuffer().then((d) => {
+          const b = new Blob([d]);
+          const img = new Image();
+          img.src = URL.createObjectURL(b);
+          img.onload = () => {
+            const obj: any = {
+              type: 'image',
+              name: name,
+              ctxmenu: true,
+              img
+            };
+            files.push(obj);
+            createFile(obj);
+          };
+        });
+      } else {
+        j.text().then((t) => {
+          const model = monaco.editor.createModel(t, 'json');
+
+          const obj: any = {
+            type: 'text',
+            name,
+            data: t,
+            ctxmenu: true,
+            model
+          };
+          files.push(obj);
+
+          createFile(obj);
+          editor.setModel(model);
+        });
       }
     }
   }
 });
-
-const term = new Terminal({
-  rendererType: 'dom',
-  convertEol: true,
-  fontFamily: 'Fira Code, monospace'
-});
-const fitAddon = new FitAddon();
-term.loadAddon(fitAddon);
-term.open(document.getElementById('terminal') as HTMLDivElement);
-fitAddon.fit();
-
-function loop() {
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-  for (let i = 0; i < els.length; ++i) {
-    els[i].render(ctx, ~~(ctx.canvas.width / 3), ~~(ctx.canvas.height / 3));
-  }
-
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
-
-parseUI(JSON.parse(stripJsonComments(base)));
