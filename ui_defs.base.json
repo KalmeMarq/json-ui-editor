@@ -1,0 +1,6 @@
+{
+  "ui_defs": [
+    "start_screen.json",
+    "ui_common.json"
+  ]
+}

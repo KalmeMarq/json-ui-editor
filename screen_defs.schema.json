@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "type": "object",
+  "properties": {
+    "screen_definitions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default": {
+          "type": "string",
+          "description": "ID of the start screen."
+        },
+        "screens": {
+          "type": "array",
+          "description": "Registry of all available screens.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "ID for this screen."
+              },
+              "target": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Root element for this screen."
+              },
+              "button_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Button ID that displays this screen."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

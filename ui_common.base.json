@@ -1,0 +1,9 @@
+{
+  "namespace": "common",
+
+  "filler": {
+    "type": "fill",
+    "color": "blue",
+    "size": ["50%", "50%"]
+  }
+}
