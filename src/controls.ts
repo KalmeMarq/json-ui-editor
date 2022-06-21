@@ -1,13 +1,30 @@
-import { GradientDirection } from './types';
+import { Color, GradientDirection } from './types';
 import { clamp } from './utils';
+import * as PIXI from 'pixi.js';
 
 export class UIControl {
+  protected _parent: UIControl | null = null;
+  protected _container = new PIXI.Container();
   private _size: [number, number] = [-1, -1];
   private _offset: [number, number] = [0, 0];
   private _layer: number = 0;
   private _alpha: number = 0;
   private _visible: boolean = true;
   private _children: UIControl[] = [];
+
+  public init() {}
+
+  public getRenderableContainer() {
+    return this._container;
+  }
+
+  public set parent(parent: UIControl | null) {
+    this._parent = parent;
+  }
+
+  public get parent() {
+    return this._parent;
+  }
 
   public set size(size: [number, number]) {
     this._size = size;
@@ -52,6 +69,36 @@ export class UIControl {
   public addChild(control: UIControl) {
     this._children.push(control);
   }
+
+  public getChildren() {
+    const c: UIControl[] = [this];
+
+    for (let i = 0; i < this._children.length; i++) {
+      c.push(...this._children[i].getChildren());
+    }
+
+    return c;
+  }
+}
+
+export class UIPanelControl extends UIControl {
+  public override init(): void {
+    let x = this.offset[0];
+    let y = this.offset[1];
+
+    if (this.parent) {
+      x += this.parent.offset[0];
+      y += this.parent.offset[1];
+    }
+
+    let zIndex = this.layer;
+    if (this.parent) {
+      zIndex += this.parent.layer;
+    }
+
+    this._container.position.set(x, y);
+    this._container.zIndex = zIndex;
+  }
 }
 
 export class UILabelControl extends UIControl {
@@ -87,6 +134,32 @@ export class UILabelControl extends UIControl {
 export class UIFillControl extends UIControl {
   private _color: [number, number, number, number] = [255, 255, 255, 1.0];
 
+  public override init(): void {
+    const gf = new PIXI.Graphics();
+    const color = (this._color[0] << 16) | (this._color[1] << 8) | (this._color[2] << 0);
+
+    let x = this.offset[0];
+    let y = this.offset[1];
+
+    if (this.parent) {
+      x += this.parent.offset[0];
+      y += this.parent.offset[1];
+    }
+
+    let zIndex = this.layer;
+    if (this.parent) {
+      zIndex += this.parent.layer;
+    }
+
+    gf.beginFill(color, this._color[3]);
+    gf.drawRect(0, 0, this.size[0], this.size[1]);
+    gf.endFill();
+
+    this._container.addChild(gf);
+    this._container.position.set(x, y);
+    this._container.zIndex = zIndex;
+  }
+
   public set color(color: [number, number, number, number]) {
     this._color = color;
   }
@@ -96,14 +169,80 @@ export class UIFillControl extends UIControl {
   }
 }
 
+export abstract class UICustomRenderer {
+  abstract getRenderable(control: UICustomControl): PIXI.DisplayObject;
+}
+
+export class UICustomFillRenderer extends UICustomRenderer {
+  override getRenderable(control: UICustomControl): PIXI.Graphics {
+    const gf = new PIXI.Graphics();
+    const color = (control.color[0] << 16) | (control.color[1] << 8) | (control.color[2] << 0);
+
+    gf.beginFill(color, control.color[3]);
+    gf.drawRect(0, 0, control.size[0], control.size[1]);
+    gf.endFill();
+
+    return gf;
+  }
+}
+
+export class UICustomGradientRenderer extends UICustomRenderer {
+  private gradient(width: number, height: number, from: Color, to: Color, direction: GradientDirection) {
+    const c = document.createElement('canvas');
+    c.width = width;
+    c.height = height;
+    const ct = c.getContext('2d') as CanvasRenderingContext2D;
+    const grd = direction === 'horizontal' ? ct.createLinearGradient(0, 0, width, 0) : ct.createLinearGradient(0, 0, 0, height);
+    grd.addColorStop(0, `rgba(${from[0]},${from[1]},${from[2]},${from[3]})`);
+    grd.addColorStop(1, `rgba(${to[0]},${to[1]},${to[2]},${to[3]})`);
+    ct.fillStyle = grd;
+    ct.fillRect(0, 0, width, height);
+    return PIXI.Texture.from(c);
+  }
+
+  getRenderable(control: UICustomControl): PIXI.DisplayObject {
+    const gf = new PIXI.Graphics();
+    gf.width = control.size[0];
+    gf.height = control.size[1];
+    gf.beginTextureFill({
+      texture: this.gradient(control.size[0], control.size[1], control.color1, control.color2, control.gradient_direction)
+    });
+    gf.drawRect(0, 0, control.size[0], control.size[1]);
+    gf.endFill();
+    return gf;
+  }
+}
+
 export class UICustomControl extends UIControl {
-  _renderer: null = null;
+  _renderer: null | UICustomRenderer = null;
   _gradient_direction: GradientDirection = 'vertical';
   _color: [number, number, number, number] = [255, 255, 255, 1.0];
   _color1: [number, number, number, number] = [255, 255, 255, 1.0];
   _color2: [number, number, number, number] = [255, 255, 255, 1.0];
 
-  public set renderer(renderer: null) {
+  public override init(): void {
+    let x = this.offset[0];
+    let y = this.offset[1];
+
+    if (this.parent) {
+      x += this.parent.offset[0];
+      y += this.parent.offset[1];
+    }
+
+    let zIndex = this.layer;
+    if (this.parent) {
+      zIndex += this.parent.layer;
+    }
+
+    if (this.renderer !== null) {
+      const c = this.renderer.getRenderable(this);
+      this._container.addChild(c);
+    }
+    this._container.position.set(x, y);
+    this._container.zIndex = zIndex;
+  }
+
+  public set renderer(renderer: UICustomRenderer | null) {
     this._renderer = renderer;
   }
 

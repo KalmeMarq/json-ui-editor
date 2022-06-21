@@ -44,7 +44,7 @@ export class RectangleArea {
   }
 }
 
-export function parseColor(color: string | [number, number, number, number] | [number, number, number]) {
+export function parseColor(color: string | [number, number, number, number] | [number, number, number]): Color {
   if (Array.isArray(color)) {
     return colorFromArray(color.length === 3 ? [...color, 1.0] : color);
   } else {
@@ -225,7 +225,7 @@ export function tokenizeAreaValue(value: string) {
   return tokens;
 }
 
-export function evalArea(value: [string | number, string | number], context: { parent_width: number; parent_height: number }) {
+export function evalArea(value: [string | number, string | number], context: { parent_width: number; parent_height: number }): [number, number] {
   const w = typeof value[0] === 'string' ? tokenizeAreaValue(value[0]) : [{ value: value[0], type: 'px' }];
   const h = typeof value[1] === 'string' ? tokenizeAreaValue(value[1]) : [{ value: value[1], type: 'px' }];
 
@@ -289,4 +289,14 @@ export function evalArea(value: [string | number, string | number], context: { p
 
 export function parseJsonC(text: string) {
   return JSON.parse(stripJsonComments(text));
+}
+
+export function resolveGradientDirection(value: string) {
+  if (value === 'horizontal') {
+    return value;
+  } else if (value === 'vertical') {
+    return value;
+  } else {
+    return 'vertical';
+  }
 }

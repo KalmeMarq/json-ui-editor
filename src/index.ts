@@ -2,17 +2,19 @@
   Still very disorganized. I'll fix it in the next 6969696969696969 years.
 */
 import * as monaco from 'monaco-editor';
-import { Application } from 'pixi.js';
+import * as PIXI from 'pixi.js';
 import stripJsonComments from 'strip-json-comments';
 import uiSchema from '../static/ui.schema.json?raw';
 import uiDefsSchema from '../static/ui_defs.schema.json?raw';
 import screenDefsSchema from '../static/screen_defs.schema.json?raw';
 import base from '../static/base.json?raw';
 import screenDefbase from '../static/screendef.base.json?raw';
+import uiCommonbase from '../static/ui_common.base.json?raw';
 import globalVariablesBase from '../static/global_variables.base.json?raw';
 import uiDefsBase from '../static/ui_defs.base.json?raw';
-import { colorFromArray, colorFromHex, colorFromHSL, colorFromRGB, evalArea, parseColor, parseJsonC } from './utils';
+import { colorFromArray, colorFromHex, colorFromHSL, colorFromRGB, evalArea, parseColor, parseJsonC, resolveGradientDirection } from './utils';
 import { Color, UIFileDefinitionTree, UIFileDefinitionTreeElement, UIFileVisualTree, UIFileVisualTreeElement } from './types';
+import { UIControl, UICustomControl, UICustomFillRenderer, UICustomGradientRenderer, UIFillControl, UIPanelControl } from './controls';
 
 //#region Debugging
 declare global {
@@ -74,12 +76,16 @@ monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
   ]
 });
 
-const app = new Application({
+const app = new PIXI.Application({
   width: 800,
   height: 600,
   view: document.getElementById('screen') as HTMLCanvasElement,
+  resizeTo: document.getElementById('screen') as HTMLCanvasElement,
   backgroundColor: 0xffffff
 });
+PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
+app.stage.scale.set(2, 2);
+app.stage.sortableChildren = true;
 
 let files: (
   | {
@@ -123,6 +129,13 @@ let files: (
     data: base,
     ctxmenu: false,
     model: monaco.editor.createModel(base, 'json')
+  },
+  {
+    type: 'text',
+    name: 'ui_common.json',
+    data: uiCommonbase,
+    ctxmenu: false,
+    model: monaco.editor.createModel(uiCommonbase, 'json')
   }
 ];
 
@@ -289,9 +302,13 @@ function parseUITreeElement(namespace: string, name: string, props: any) {
   let el_super_namespace = '';
   let el_props = props as any;
 
-  if (el_super !== undefined) {
-    el_super = el_super.includes('.') ? el_super.split('.')[0] : el_super;
-    el_super_namespace = el_super.includes('.') ? el_super.split('.')[0] : el_namespace;
+  if (el_super !== undefined && el_super !== '') {
+    if (el_super.includes('.')) {
+      el_super_namespace = el_super.split('.')[0];
+      el_super = el_super.split('.')[1];
+    } else {
+      el_super_namespace = namespace;
+    }
   }
 
   let children: UIFileDefinitionTreeElement[] = [];
@@ -314,16 +331,70 @@ function parseUITreeElement(namespace: string, name: string, props: any) {
   };
 }
 
-function parseUIVisualTree() {
+function parseUIVisualTreeElement(c: UIFileDefinitionTreeElement): UIFileVisualTreeElement {
+  if (c.super !== '') {
+    const superEl = uiFiles[c.super_namespace][c.super];
+
+    c.properties = { ...superEl.properties, ...c.properties };
+
+    const children: UIFileVisualTreeElement[] = [];
+
+    if (c.properties['controls'] && Array.isArray(c.properties['controls'])) {
+      c.properties['controls'].forEach((d) => {
+        children.push(parseUIVisualTreeElement(d));
+      });
+
+      c.properties['controls'] = children as any;
+    }
+
+    return {
+      name: c.name,
+      namespace: c.namespace,
+      full_name: `${c.name}${c.super === '' ? '' : `@${c.super_namespace}.${c.super}`}`,
+      properties: c.properties
+    };
+  } else {
+    const children: UIFileVisualTreeElement[] = [];
+
+    if (c.properties['controls'] && Array.isArray(c.properties['controls'])) {
+      c.properties['controls'].forEach((d) => {
+        children.push(parseUIVisualTreeElement(d));
+      });
+
+      c.properties['controls'] = children as any;
+    }
+
+    return {
+      name: c.name,
+      namespace: c.namespace,
+      full_name: `${c.name}${c.super === '' ? '' : `@${c.super_namespace}.${c.super}`}`,
+      properties: c.properties
+    };
+  }
+}
+
+function parseUIVisualTree(target: string) {
+  const uiStuff: Record<string, Record<string, UIFileVisualTreeElement>> = {};
+
   Object.entries(uiFiles).forEach(([namespace, data]) => {
     const tree: UIFileVisualTree = {};
 
     Object.entries<UIFileDefinitionTreeElement>(data).forEach(([el_name, el_data]) => {
-      // console.log(el_name, el_data);
-
       if (el_data.super !== '') {
-        // console.log(uiFiles[el_data.super_namespace][el_data.super]);
-      } else {
+        const superEl = uiFiles[el_data.super_namespace][el_data.super];
+
+        el_data.properties = { ...superEl.properties, ...el_data.properties };
+
+        const children: UIFileVisualTreeElement[] = [];
+
+        if (el_data.properties['controls'] && Array.isArray(el_data.properties['controls'])) {
+          el_data.properties['controls'].forEach((c) => {
+            children.push(parseUIVisualTreeElement(c));
+          });
+
+          el_data.properties['controls'] = children as any;
+        }
+
         const obj: UIFileVisualTreeElement = {
           name: el_name,
           namespace: el_data.namespace,
@@ -331,26 +402,194 @@ function parseUIVisualTree() {
           properties: el_data.properties
         };
 
-        console.log(obj);
+        tree[el_name] = obj;
+      } else {
+        const children: UIFileVisualTreeElement[] = [];
+
+        if (el_data.properties['controls'] && Array.isArray(el_data.properties['controls'])) {
+          el_data.properties['controls'].forEach((c) => {
+            children.push(parseUIVisualTreeElement(c));
+          });
+
+          el_data.properties['controls'] = children as any;
+        }
+
+        const obj: UIFileVisualTreeElement = {
+          name: el_name,
+          namespace: el_data.namespace,
+          full_name: `${el_name}${el_data.super === '' ? '' : `@${el_data.super_namespace}.${el_data.super}`}`,
+          properties: el_data.properties
+        };
+
+        tree[el_name] = obj;
       }
     });
+
+    uiStuff[namespace] = tree;
   });
+
+  try {
+    parseUI(uiStuff, target);
+  } catch (e) {
+    if (e instanceof Error) {
+      writeToConsole('[ERROR] UI: Failed to parse UI:');
+      writeToConsole('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + e.message);
+      writeToConsole('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + e.stack);
+      return;
+    }
+  }
+}
+
+const availableTypes = ['fill', 'custom', 'panel'];
+
+function createControl(parent: UIControl | null, c: UIFileVisualTreeElement): UIControl | undefined {
+  if (c.properties['ignored']) return undefined;
+
+  if (c.properties['type'] === undefined || !availableTypes.includes(c.properties['type'])) {
+    writeToConsole('[ERROR] UI: ' + c.full_name + '; type property required.');
+    return undefined;
+  }
+
+  if (c.properties['type'] === 'panel') {
+    const control = new UIPanelControl();
+
+    populateLayout(parent, control, c);
+    populateControl(parent, control, c);
+
+    control.parent = parent;
+
+    return control;
+  } else if (c.properties['type'] === 'fill') {
+    const control = new UIFillControl();
+
+    populateLayout(parent, control, c);
+    populateControl(parent, control, c);
+    populateFill(parent, control, c);
+
+    control.parent = parent;
+
+    return control;
+  } else if (c.properties['type'] === 'custom') {
+    const control = new UICustomControl();
+
+    populateLayout(parent, control, c);
+    populateControl(parent, control, c);
+    populateCustom(parent, control, c);
+
+    control.parent = parent;
+
+    return control;
+  }
+}
+
+function parseUI(uiStuff: Record<string, Record<string, UIFileVisualTreeElement>>, target: string) {
+  const target_namespace = target.split('.')[0];
+  const target_name = target.split('.')[1];
+
+  if (uiStuff[target_namespace][target_name] === undefined) {
+    writeToConsole(`[ERROR] UI: Target element '${target}' does not exist`);
+    return;
+  }
+
+  const root = createControl(null, uiStuff[target_namespace][target_name]);
+  if (root === undefined) {
+    writeToConsole('bruh');
+    return;
+  }
+
+  const all_controls = root.getChildren();
+
+  app.stage.removeChildren();
+
+  console.log(all_controls);
+
+  for (let i = 0; i < all_controls.length; i++) {
+    const c = all_controls[i];
+    c.init();
+    app.stage.addChild(c.getRenderableContainer());
+  }
+}
+
+function populateCustom(parent: UIControl | null, control: UICustomControl, c: UIFileVisualTreeElement) {
+  if (c.properties['color']) {
+    control.color = parseColor(c.properties['color']);
+  }
+
+  if (c.properties['color1']) {
+    control.color1 = parseColor(c.properties['color1']);
+  }
+
+  if (c.properties['color2']) {
+    control.color2 = parseColor(c.properties['color2']);
+  }
+
+  if (c.properties['gradient_direction']) {
+    control.gradient_direction = resolveGradientDirection(c.properties['gradient_direction']);
+  }
+
+  if (c.properties['renderer']) {
+    switch (c.properties['renderer']) {
+      case 'fill_renderer':
+        control.renderer = new UICustomFillRenderer();
+        break;
+      case 'gradient_renderer':
+        control.renderer = new UICustomGradientRenderer();
+        break;
+    }
+  }
+}
+
+function populateControl(parent: UIControl | null, control: UIControl, c: UIFileVisualTreeElement) {
+  if (typeof c.properties['visible'] === 'boolean') {
+    control.visible = c.properties['visible'];
+  }
+
+  if (typeof c.properties['alpha'] === 'boolean') {
+    control.alpha = c.properties['alpha'];
+  }
+
+  if (typeof c.properties['layer'] === 'number') {
+    control.layer = c.properties['layer'];
+  }
+
+  if (Array.isArray(c.properties['controls'])) {
+    for (let i = 0; i < c.properties['controls'].length; i++) {
+      const d = createControl(control, c.properties['controls'][i]);
+      if (d) control.addChild(d);
+    }
+  }
+}
+
+function populateFill(parent: UIControl | null, control: UIFillControl, c: UIFileVisualTreeElement) {
+  if (c.properties['color']) {
+    control.color = parseColor(c.properties['color']);
+  }
+}
+
+function populateLayout(parent: UIControl | null, control: UIControl, c: UIFileVisualTreeElement) {
+  // console.log(c.name, c.properties['size'], parent, parent?.size[0], parent?.size[1]);
+
+  const apprect = app.view.getBoundingClientRect();
+  if (c.properties['size']) {
+    if (Array.isArray(c.properties['size']) && c.properties['size'].length === 2) {
+      control.size = evalArea(c.properties['size'] as any, { parent_width: parent !== null ? parent.size[0] : apprect.width / 2, parent_height: parent !== null ? parent.size[1] : apprect.height / 2 });
+    }
+  } else {
+    control.size = evalArea(['100%', '100%'], { parent_width: parent !== null ? parent.size[0] : apprect.width / 2, parent_height: parent !== null ? parent.size[1] : apprect.height / 2 });
+  }
+
+  if (c.properties['offset']) {
+    if (Array.isArray(c.properties['offset']) && c.properties['offset'].length === 2) {
+      control.offset = evalArea(c.properties['offset'] as any, { parent_width: parent !== null ? parent.size[0] : apprect.width / 2, parent_height: parent !== null ? parent.size[1] : apprect.height / 2 });
+    }
+  } else {
+    control.offset = evalArea([0, 0], { parent_width: parent !== null ? parent.size[0] : apprect.width / 2, parent_height: parent !== null ? parent.size[1] : apprect.height / 2 });
+  }
 }
 
 function parseUITree(rootElement: string) {
   const nm = rootElement.split('.')[0];
   const target = rootElement.split('.')[1];
-
-  // if (uiFiles[nm] === undefined) {
-  //   writeToConsole('[ERROR] UI: ' + nm + ' namespace does not exist.');
-  //   return;
-  // }
-
-  // console.log(uiFiles[nm]);
-  // if (uiFiles[nm][target] === undefined) {
-  //   writeToConsole('[ERROR] UI: ' + nm + '.' + target + ' element does not exist.');
-  //   return;
-  // }
 
   Object.entries(uiFiles).forEach(([namespace, data]) => {
     const tree: UIFileDefinitionTree = {};
@@ -363,7 +602,7 @@ function parseUITree(rootElement: string) {
       let el_props = props as any;
 
       if (el_super !== undefined) {
-        el_super = el_super.includes('.') ? el_super.split('.')[0] : el_super;
+        el_super = el_super.includes('.') ? el_super.split('.')[1] : el_super;
         el_super_namespace = el_super.includes('.') ? el_super.split('.')[0] : el_namespace;
       }
 
@@ -390,7 +629,16 @@ function parseUITree(rootElement: string) {
     uiFiles[namespace] = tree;
   });
 
-  parseUIVisualTree();
+  try {
+    parseUIVisualTree(rootElement);
+  } catch (e) {
+    if (e instanceof Error) {
+      writeToConsole('[ERROR] UI: Failed to parse UI Visual Tree:');
+      writeToConsole('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + e.message);
+      writeToConsole('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + e.stack);
+      return;
+    }
+  }
 }
 
 function processUI() {
@@ -438,7 +686,15 @@ function processUI() {
       });
 
       const s = screenDefinitions[screen_defs.default];
-      parseUITree(s.target);
+      try {
+        parseUITree(s.target);
+      } catch (e) {
+        if (e instanceof Error) {
+          writeToConsole('[ERROR] UI: Failed to parse UI Tree:');
+          writeToConsole('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + e.message);
+          return;
+        }
+      }
     } catch (e) {
       if (e instanceof Error) {
         writeToConsole('[ERROR] UI: Failed to parse _screen_definitions.json:');
@@ -455,6 +711,10 @@ function processUI() {
 }
 
 processUI();
+
+window.addEventListener('resize', () => {
+  processUI();
+});
 
 explorer.addEventListener('drag', (e) => {
   e.preventDefault();
