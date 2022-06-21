@@ -13,9 +13,6 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "noEmit": true,
-    "types": [
-      "vite/client"
-    ],
     "rootDir": "./src",
     "baseUrl": "."
   },

@@ -1,0 +1,76 @@
+/*
+  The editor is still in early development!
+  Includes the JSON UI Schema. Take a look at https://github.com/KalmeMarq/Bugrock-JSON-UI-Schemas
+
+  Editor Exclusive Features:
+    type[fill]
+    color can be also be "#FFFFFF", "rgb(255, 255, 255)" and "hsl(360, 20%, 10%)"
+    custom[fill_renderer]
+*/
+{
+  "namespace": "start",
+
+  "another_fill": {
+    "type": "fill",
+    "color": [1, 0.5, 0]
+  },
+
+  "content_panel": {
+    "type": "panel"
+  },
+
+  "dialog": {
+    "type": "image",
+    "texture": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAhCAYAAADUIPtUAAAAAklEQVR4AewaftIAAAC9SURBVK3BwXGDMBCG0W//UJGacAU6qQwaSCrQhSsVqA+2LEUZx2P7EALMvme865xj/DKe+sAZZsZgDB/c9YGzbrcb67p+Al8G9IEHd+eoWis/WmuIF+7OVSKICCKCiCAiiAgigoggIogIIoKIICKICCKCiCAiyMSOeZ55SClRSuEv4h/ubu5uy7KwRwSZ2JFSYtu2zgETO0opuDtHiCAiiLio1sor467nnLmqtYbx1HPOnNVaYzDjXec8Y/gGSPg0olRZzQgAAAAASUVORK5CYII=",
+    "nineslice_size": [8, 23, 8, 8],
+    "size": [128, 120],
+    "offset": [140, 10],
+    "layer": 1,
+    "controls": [
+      {
+        "bg": {
+          "type": "custom",
+          "renderer": "fill_renderer",
+          "color": [0, 0, 0, 0.75],
+          "size": ["100% - 15px", "100% - 7px - 24px"],
+          "offset": [7, "23px"]
+        }
+      },
+      {
+        "title": {
+          "type": "label",
+          "text": "Dialog title",
+          "color": [0.25, 0.25, 0.25],
+          "offset": [8, 8]
+        }
+      },
+      {
+        "message": {
+          "type": "label",
+          "text": "Hi everyone!",
+          "size": ["100% - 16px", "100%"],
+          "offset": [12, 27]
+        }
+      }
+    ]
+  },
+
+  // the target element (as if it was the screen element). Do not delete it!
+  "start_content_panel@content_panel": {
+    "$grad_dir": "horizontal",
+    "controls": [
+      {
+        "filler": {
+          "type": "custom",
+          "renderer": "gradient_renderer",
+          "gradient_direction": "$grad_dir",
+          "color1": [0, 0, 0],
+          "color2": [0, 0, 0, 0],
+          "anchor_from": "top_middle",
+          "anchor_to": "center",
+          "size": [100, 200]
+        }
+      }
+    ]
+  }
+}

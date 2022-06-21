@@ -1,4 +1,4 @@
-import { ClipDirection, Color, FontSize, GradientDirection, Tiled } from './types';
+import { AnchorPoint, ClipDirection, Color, FontSize, GradientDirection, Tiled } from './types';
 import { clamp } from './utils';
 import * as PIXI from 'pixi.js';
 
@@ -9,10 +9,12 @@ export class UIControl {
   private _offset: [number, number] = [0, 0];
   private _layer: number = 0;
   private _alpha: number = 0;
+  private _anchor_from: AnchorPoint = 'center';
+  private _anchor_to: AnchorPoint = 'center';
   private _visible: boolean = true;
   private _children: UIControl[] = [];
 
-  public init() {}
+  public init(screenWidth: number, screenHeight: number) {}
 
   public getRenderableContainer() {
     return this._container;
@@ -67,6 +69,22 @@ export class UIControl {
     return this._visible;
   }
 
+  public set anchor_from(anchor_from: AnchorPoint) {
+    this._anchor_from = anchor_from;
+  }
+
+  public get anchor_from() {
+    return this._anchor_from;
+  }
+
+  public set anchor_to(anchor_to: AnchorPoint) {
+    this._anchor_to = anchor_to;
+  }
+
+  public get anchor_to() {
+    return this._anchor_to;
+  }
+
   public addChild(control: UIControl) {
     this._children.push(control);
   }
@@ -83,7 +101,7 @@ export class UIControl {
 }
 
 export class UIPanelControl extends UIControl {
-  public override init(): void {
+  public override init(screenWidth: number, screenHeight: number): void {
     let x = this.offset[0];
     let y = this.offset[1];
 
@@ -95,6 +113,22 @@ export class UIPanelControl extends UIControl {
     let zIndex = this.layer;
     if (this.parent) {
       zIndex += this.parent.layer;
+    }
+
+    switch (this.anchor_from) {
+      case 'top_left':
+        break;
+      case 'top_middle':
+        if (this.parent) {
+          let x0 = x;
+          x = this.parent.size[0] / 2;
+          x += x0 / 2;
+        } else {
+          let x0 = x;
+          x = screenWidth / 2;
+          x += x0 / 2;
+        }
+        break;
     }
 
     this._container.position.set(x, y);
@@ -297,7 +331,7 @@ export class UICustomControl extends UIControl {
   _color1: [number, number, number, number] = [255, 255, 255, 1.0];
   _color2: [number, number, number, number] = [255, 255, 255, 1.0];
 
-  public override init(): void {
+  public override init(screenWidth: number, screenHeight: number): void {
     let x = this.offset[0];
     let y = this.offset[1];
 
@@ -315,6 +349,168 @@ export class UICustomControl extends UIControl {
       const c = this.renderer.getRenderable(this);
       this._container.addChild(c);
     }
+
+    switch (this.anchor_from) {
+      case 'top_left':
+        switch (this.anchor_to) {
+          case 'bottom_left':
+            y -= this.size[1];
+            break;
+          case 'bottom_middle':
+            x -= this.size[0] / 4;
+            y -= this.size[1];
+            break;
+          case 'bottom_right':
+            x -= this.size[0];
+            y -= this.size[1];
+            break;
+          case 'left_middle':
+            y -= this.size[1] / 2;
+            break;
+          case 'right_middle':
+            x -= this.size[0];
+            y -= this.size[1] / 4;
+            break;
+          case 'center':
+            x -= this.size[0] / 2;
+            y -= this.size[1] / 2;
+            break;
+          case 'top_middle':
+            x -= this.size[0] / 4;
+            y -= this.size[1] / 2;
+            break;
+          case 'top_right':
+            x -= this.size[0];
+            y -= this.size[1] / 2;
+            break;
+        }
+        break;
+      case 'bottom_left':
+        if (this.parent) {
+          y = this.parent.size[1];
+          y -= this.size[1];
+        } else {
+          y = screenHeight;
+          y -= this.size[1];
+        }
+        break;
+      case 'bottom_middle':
+        if (this.parent) {
+          x = this.parent.size[0] / 2;
+          x -= this.size[0] / 2;
+          y = this.parent.size[1];
+          y -= this.size[1];
+        } else {
+          x = screenWidth / 2;
+          x -= this.size[0] / 2;
+          y = screenHeight;
+          y -= this.size[1];
+        }
+        break;
+      case 'bottom_right':
+        if (this.parent) {
+          x = this.parent.size[0];
+          x -= this.size[0];
+          y = this.parent.size[1];
+          y -= this.size[1];
+        } else {
+          x = screenWidth;
+          x -= this.size[0];
+          y = screenHeight;
+          y -= this.size[1];
+        }
+        break;
+      case 'top_middle':
+        if (this.parent) {
+          x = this.parent.size[0] / 2;
+          x -= this.size[0] / 2;
+        } else {
+          x = screenWidth / 2;
+          x -= this.size[0] / 2;
+        }
+
+        switch (this.anchor_to) {
+          case 'top_left':
+            x += this.size[0] / 2;
+            break;
+          case 'top_right':
+            x -= this.size[0] / 2;
+            break;
+          case 'left_middle':
+            x += this.size[0] / 2;
+            y -= this.size[1] / 2;
+            break;
+          case 'right_middle':
+            x -= this.size[0] / 2;
+            y -= this.size[1] / 2;
+            break;
+          case 'center':
+            y -= this.size[1] / 2;
+            break;
+          case 'bottom_left':
+            x += this.size[0] / 2;
+            y -= this.size[1] / 2;
+            break;
+          case 'bottom_right':
+            x -= this.size[0] / 2;
+            y -= this.size[1] / 2;
+            break;
+        }
+        break;
+      case 'top_right':
+        if (this.parent) {
+          x = this.parent.size[0];
+          x -= this.size[0];
+        } else {
+          x = screenWidth;
+          x -= this.size[0];
+        }
+        break;
+      case 'left_middle':
+        if (this.parent) {
+          y = this.parent.size[1] / 2;
+          y -= this.size[1] / 2;
+        } else {
+          y = screenHeight / 2;
+          y -= this.size[1] / 2;
+        }
+        break;
+      case 'right_middle':
+        if (this.parent) {
+          x = this.parent.size[0];
+          x -= this.size[0];
+          y = this.parent.size[1] / 2;
+          y -= this.size[1] / 2;
+        } else {
+          x = screenWidth;
+          x -= this.size[0];
+          y = screenHeight / 2;
+          y -= this.size[1] / 2;
+        }
+        break;
+      case 'center':
+        if (this.parent) {
+          x = this.parent.size[0] / 2;
+          x -= this.size[0] / 2;
+          y = this.parent.size[1] / 2;
+          y -= this.size[1] / 2;
+        } else {
+          x = screenWidth / 2;
+          x -= this.size[0] / 2;
+          y = screenHeight / 2;
+          y -= this.size[1] / 2;
+        }
+        break;
+    }
+
+    x += this.offset[0];
+    y += this.offset[1];
+
+    if (this.parent) {
+      x += this.parent.offset[0];
+      y += this.parent.offset[1];
+    }
+
     this._container.position.set(x, y);
     this._container.zIndex = zIndex;
   }
@@ -383,11 +579,16 @@ export class UISpriteControl extends UIControl {
       img.src = this.texture;
       const base = new PIXI.BaseTexture(img);
       const texture = new PIXI.Texture(base);
+      img.onload = () => {
+        this.initImage();
+      };
       UISpriteControl.cacheTxr[this.texture] = texture;
     } else {
-      console.log(this.texture, UISpriteControl.cacheTxr);
+      this.initImage();
     }
+  }
 
+  public initImage() {
     let x = this.offset[0];
     let y = this.offset[1];
 
@@ -445,6 +646,7 @@ export class UISpriteControl extends UIControl {
     }
 
     txr = new PIXI.Texture(txr.baseTexture, new PIXI.Rectangle(txr_u, txr_v, txr_u_width, txr_v_height));
+    txr.update();
 
     let sprite: PIXI.Sprite | PIXI.Container = new PIXI.Sprite(txr);
     sprite.width = w;
@@ -454,8 +656,10 @@ export class UISpriteControl extends UIControl {
 
     if (this.nineslice_size !== null) {
       sprite = new PIXI.NineSlicePlane(txr, this.nineslice_size[0], this.nineslice_size[1], this.nineslice_size[2], this.nineslice_size[3]);
-      sprite.width = w;
-      sprite.height = h;
+      if (sprite instanceof PIXI.NineSlicePlane) {
+        sprite.width = w;
+        sprite.height = h;
+      }
     }
     if (this.tiled) {
       sprite = new PIXI.TilingSprite(txr, w, h);

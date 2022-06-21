@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <link rel="stylesheet" href="./styles.css">
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JSON UI Editor</title>
-    <link rel="shortcut icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADIEAIAAAByquWKAAAIjklEQVR4nOzdXYhU9/3H8TMzZ2aPM/swSx70xr+6gT/VRhShLAhCGmwNrgatUaOLVqWBmLbYSMQKJUkVisbSkhbb0kZMaZPoNlXz4EMShNBgU0pTlFa0TdXVBXXcrDu7zMyeedgzZT1Je+hdb76nH/b9Wpjbz5nx7Ns5N791Fy/etq2727GxeuIn8frEj9FiRLMZBM2m5WKjUX208VoQjB9uPma5G5fkb9PHksnk2uTjiYT9erVaKtVqloupVDqd3D3xmtpjuRvyvLa2lhbLxSAYHw+enXhtPme5G5WMaxgA/lsEC4AMggVABsECIINgAZBBsADIIFgAZBAsADIIFgAZBAuADIIFQAbBAiCDYAGQQbAAyCBYAGQQLAAyCBYAGW54CqjR2ofO086HwZFgIDhitBiRejx1NGka6OQzbi3Z73Qn1jVj+I8hsSbxutm/7F2ZrrGtwdnkzcYLzQHL3VDtYPp4Yo3p5G5nj+ME3x3fHcf9XE/7XmO95WLyorsuMSd1Kb0uudZyN8q1PLA4TFWwqr4yWGWzGNUyJftmxrNcTNxKrkh8pdkbHGm6lrufrmeS2cRxy8XWL9/4S3lp5ok73fWPLXdDlRuzj2ePWi4GfeN9wYPBc/Vn47ifG81q4Jse+T1lX36V95j3Qls2bfp7FMUjIQAZBAuADIIFQAbBAiCDYAGQQbAAyCBYAGQQLAAyCBYAGQQLgAyCBUAGwQIgg2ABkEGwAMggWABkECwAMggWABkEC4AMggVAhpvJZLPptNFY6yd+tS877eJfy2Wbxahq9ZFH2tstF0cPF+qlVdVqebT+K8vdUDLpurZ/dGPKxkYjCJy3LTf/zXUzmVTKcjH34q2RRpCbXvhHrWq5GxocXLDA9n5O7Zm4oxop3280LHej+IYFQAbBAiCDYAGQQbAAyCBYAGQQLAAyCBYAGQQLgAyCBUAGwQIgg2ABkEGwAMggWABkECwAMggWABkEC4AMggVABsECIMOdsvHig6MHbcYy33EXt51qPTVjw9yLNotRwci5X3+8wXKxfaW/sPH38cONF4NXLHdDo6NdO7NftVxMHEysSfzGcZyXLFc/0/5O//6xZZaL7tHqA8GrzjHnAcvVz9Rq5aU10/sql6tUmkey2Uql2We5G5VYt27RotmzbcYyvR3v3v/1ttMzd8y9ZLMYNTR0/vyZM/a7cbl9e/78tjbLxfZ3+vvHlnkbisXGa5a7k9P1611dmYzlYkfH8PD4ePhquRvFIyEAGQQLgAyCBUAGwQIgg2ABkEGwAMggWABkECwAMggWABkEC4AMggVABsECIINgAZBBsADIIFgAZBAsADIIFgAZBAuADIIFQIa7aNG8ebNm2YxV5vq/q/UOnS0U/txjsxg1Z47dOw1N+0bne62tuVPeRtuzt0Mvv3z69EcfWS7Onj/jmfvP3PvUjPdypp9zaGCgUCgW7Xfjc+XK8HDc12CNb1gAZBAsADIIFgAZBAuADIIFQAbBAiCDYAGQQbAAyCBYAGQQLAAyCBYAGQQLgAyCBUAGwQIgg2ABkEGwAMggWABkECwAMtyhn478orzUZqzc7R+rd35yoDin9Debxajpe6dOzT9tuVjcUrrk+6Ufj/2xVrPcDd23M/+H3CbLxZbvZ9a7zzuOs9n5ouVuaPBAsVg6ZL8bmx7HcVZYDuZOeF76ePaE52WOW+5GuZVl/qP1V23GKhXfr+0r9/jFuukHHWF61ri/oP7NRsNx6paj/5I76XmZNywXUz9KHk3ccE44bzm9lruhco/vx3ZfTQrpXtdNXbK/r6J4JAQgg2ABkEGwAMggWABkECwAMggWABkEC4AMggVABsECIINgAZBBsADIIFgAZBAsADIIFgAZBAuADIIFQAbBAiCDYAGQQbAAyHAfemj+/K4um7HB/cViafuFz/f3347hTOiBgUKhWLTfjUt7+4IFy5dbLo4uubr2Tx1DKwtfuhnD5zxz5rRpnZ32i/a7cenvv3Vr+Od3X2O7Br5hAZBBsADIIFgAZBAsADIIFgAZBAuADIIFQAbBAiCDYAGQQbAAyCBYAGQQLAAyCBYAGQQLgAyCBUAGwQIgg2ABkEGwAMhw7x54anTiafmA79cOOT+xWftPk+co21Blx+j2a5stF1MrU6ca/x/8ILff+z/L3dDI9vIO37dcLBZLpbGdE79Bzj7L3VDHxOfsWS4O/7L0ubHu4rnS7LF5lrtRiV27Vq9euDCueUuWp9f/L7h8+ebNO3fivgo7k+3M/unTp07N5y0Xr22+9eTwtutbCluL37LcjeKREIAMggVABsECIINgAZBBsADIIFgAZBAsADIIFgAZBAuADIIFQAbBAiCDYAGQQbAAyCBYAGQQLAAyCBYAGQQLgAyCBUAGwQIgw7U8GbrS4y+vvTL0s5GXKj02i1Hvv3/u3JUrlov3PNnxteyJ7AnvrUyv5W7I/ozzeN+vvfCPUEy8+t+O+1osdOZbW6fsm/HDafM6Z8V1DXzDAiCDYAGQQbAAyCBYAGQQLAAyCBYAGQQLgAyCBUAGwQIgg2ABkEGwAMggWABkECwAMggWABkEC4AMggVABsECIINgAZCR2Nuyqf/hhw0Xm+Gu4eKnrm0pbB3eZrl479b8u7lc7gstlzPfs9wNjWwv7/B9y8Vm0Oxr9jWfdy44Fyx3Q6Pm7zde+bsHFlsutizJnHVdb0n6965ruRuV2LVr9eqFC23Gsm97b6bX37O144ncSZvFqA8+OH/+6lXLxfueyudzm3InPS/zhuVuXAYPFIulQ+Ue36+viPtaLEwkw9trH47JjEdCADIIFgAZBAuADIIFQAbBAiCDYAGQQbAAyCBYAGQQLAAyCBYAGQQLgAyCBUAGwQIgg2ABkEGwAMggWABkECwAMggWABkEC4AMggVAxj8DAAD//39TGAq8TWJqAAAAAElFTkSuQmCC" type="image/png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="shortcut icon" href="./icon.png" type="image/png">
   </head>
   <body>
     <div class="app">
@@ -17,7 +17,6 @@
             <div class="filler"></div>
             <button class="toolbar-btn codicon codicon-new-file" id="new-file" title="New File"></button>
             <button class="toolbar-btn codicon codicon-refresh" id="refresh-explorer" title="Refresh Explorer"></button>
-            <!-- <button class="toolbar-btn codicon codicon-new-folder" id="new-folder" title="New Folder"></button> -->
           </div>
           <div id="explorer-list">
           </div>

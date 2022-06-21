@@ -1,0 +1,58 @@
+{
+  // It's editor exlusive. Since there's no screens (because there's no game)
+  // register here screens. 
+  //
+  // Opening other screens is not possible yet. Buttons are still not implemented.
+  // However, you can still change the default screen.
+  "screen_definitions": {
+    "default": "start",
+    "context": {
+      "variables": {
+        "$is_trial": false,
+        "$is_publish": true,
+        "#playername": "Steve",
+        "#gamertag_label": "Steve",
+        "$desktop_screen": false,
+        "$pocket_screen": false
+      },
+      "whitelist_urls": [
+        "https://github.com/KalmeMarq/json-ui-editor"
+      ]
+    },
+    "screens": [
+      {
+        "id": "start",
+        "target": "start.start_content_panel",
+        "button_id": "button.menu_start",
+        "context": {
+          "variables": {
+            "#version": "v1.0.0",
+            "#development_version": "584d83f2f4b7fb96",
+            "#online_buttons_visible": true,
+            "#feedback_visible": true,
+            "$play_button_target": "button.menu_play",
+            "#marketplace_disabled": false,
+            "#new_offers": true,
+            "#toolbox_button_visible": true,
+            "#realms_notification_count": 13,
+            "#realms_notification_visible": true
+          },
+          "whitelist_urls": [
+            "https://aka.ms/minecraftfb",
+            "https://aka.ms/minecraftfbbeta"
+          ]
+        }
+      },
+      {
+        "id": "death",
+        "target": "death.death_content_panel",
+        "button_id": "button.menu_death",
+        "context": {
+          "variables": {
+            "#death_reason_text": "Steve died because he was too stupid"
+          }
+        }
+      }
+    ]
+  }
+}

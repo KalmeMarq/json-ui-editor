@@ -1,3 +1,5 @@
+import * as monaco from 'monaco-editor';
+
 export type FontSize = 'small' | 'normal' | 'large' | 'extra_large';
 export type TextAlignment = 'left' | 'center' | 'right';
 export type ClipDirection = 'left' | 'up' | 'down' | 'right';
@@ -23,8 +25,32 @@ export interface UIFileVisualTreeElement {
   namespace: string;
   full_name: string;
   properties: Record<string, string>;
+  variables: Record<string, { isDefault: boolean; value: string }>;
 }
 
 export interface UIFileVisualTree {
   [name: string]: UIFileVisualTreeElement;
 }
+
+export interface ExplorerFileJson {
+  type: 'json';
+  name: string;
+  contextMenu: boolean;
+  model: monaco.editor.ITextModel;
+}
+
+export interface ExplorerFileText {
+  type: 'text';
+  name: string;
+  contextMenu: boolean;
+  model: monaco.editor.ITextModel;
+}
+
+export interface ExplorerFileImage {
+  type: 'image';
+  name: string;
+  contextMenu: boolean;
+  element: HTMLImageElement;
+}
+
+export type ExplorerFile = ExplorerFileJson | ExplorerFileText | ExplorerFileImage;

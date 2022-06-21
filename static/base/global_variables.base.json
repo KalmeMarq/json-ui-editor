@@ -1,0 +1,19 @@
+{
+  "$minecraft": "Minecraft Bugrock",
+  "$0_color_format": [0.0, 0.0, 0.0], // Black
+  "$1_color_format": [0.0, 0.0, 0.667], // Dark Blue
+  "$2_color_format": [0.0, 0.667, 0 ],// Dark Green
+  "$3_color_format": [0.0, 0.667, 0.667], // Dark Aqua
+  "$4_color_format": [0.667, 0.0, 0.0], // Dark Red
+  "$5_color_format": [0.667, 0.0, 0.667], // Dark Purple
+  "$6_color_format": [1.0, 0.667, 0.0], // Gold
+  "$7_color_format": [0.667, 0.667, 0.667], // Gray
+  "$8_color_format": [0.333, 0.333, 0.333], // Dark Gray
+  "$9_color_format": [0.333, 0.333, 1.0], // Blue
+  "$a_color_format": [0.333, 1.0, 0.333], // Green
+  "$b_color_format": [0.333, 1.0, 1.0], // Aqua
+  "$c_color_format": [1.0, 0.333, 0.333], // Red
+  "$d_color_format": [1.0, 0.333, 1.0], // Light Purple
+  "$e_color_format": [1.0, 1.0, 0.333], // Yellow
+  "$f_color_format": [1.0, 1.0, 1.0] // White
+}
