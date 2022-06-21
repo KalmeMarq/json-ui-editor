@@ -1,3 +1,8 @@
+@font-face {
+  font-family: 'Minecraft';
+  src: url(./Minecraftia.ttf);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -66,6 +71,14 @@ body {
   background: black;
   color: white;
   overflow-y: auto;
+}
+
+#console p {
+  cursor: default;
+}
+
+#console p::selection {
+  background: #FFFFFF44;
 }
 
 #console::-webkit-scrollbar {
@@ -292,4 +305,13 @@ body {
 
 .file-contextmenu.locked .ctxmenu-item:hover {
   background: transparent;
+}
+
+/*  */
+.links {
+  padding: 0.6rem 1.2rem;
+}
+
+.links a:hover {
+  filter: brightness(50%);
 }

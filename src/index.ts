@@ -12,9 +12,9 @@ import screenDefbase from '../static/screendef.base.json?raw';
 import uiCommonbase from '../static/ui_common.base.json?raw';
 import globalVariablesBase from '../static/global_variables.base.json?raw';
 import uiDefsBase from '../static/ui_defs.base.json?raw';
-import { colorFromArray, colorFromHex, colorFromHSL, colorFromRGB, evalArea, parseColor, parseJsonC, resolveGradientDirection } from './utils';
+import { clamp, colorFromArray, colorFromHex, colorFromHSL, colorFromRGB, evalArea, parseColor, parseJsonC, resolveGradientDirection } from './utils';
 import { Color, UIFileDefinitionTree, UIFileDefinitionTreeElement, UIFileVisualTree, UIFileVisualTreeElement } from './types';
-import { UIControl, UICustomControl, UICustomFillRenderer, UICustomGradientRenderer, UIFillControl, UIPanelControl } from './controls';
+import { UIControl, UICustomControl, UICustomFillRenderer, UICustomGradientRenderer, UIFillControl, UILabelControl, UIPanelControl, UISpriteControl } from './controls';
 
 //#region Debugging
 declare global {
@@ -332,7 +332,7 @@ function parseUITreeElement(namespace: string, name: string, props: any) {
 }
 
 function parseUIVisualTreeElement(c: UIFileDefinitionTreeElement): UIFileVisualTreeElement {
-  if (c.super !== '') {
+  if (c.super !== '' && c.super !== undefined) {
     const superEl = uiFiles[c.super_namespace][c.super];
 
     c.properties = { ...superEl.properties, ...c.properties };
@@ -440,7 +440,7 @@ function parseUIVisualTree(target: string) {
   }
 }
 
-const availableTypes = ['fill', 'custom', 'panel'];
+const availableTypes = ['fill', 'custom', 'panel', 'image', 'label'];
 
 function createControl(parent: UIControl | null, c: UIFileVisualTreeElement): UIControl | undefined {
   if (c.properties['ignored']) return undefined;
@@ -465,6 +465,26 @@ function createControl(parent: UIControl | null, c: UIFileVisualTreeElement): UI
     populateLayout(parent, control, c);
     populateControl(parent, control, c);
     populateFill(parent, control, c);
+
+    control.parent = parent;
+
+    return control;
+  } else if (c.properties['type'] === 'image') {
+    const control = new UISpriteControl();
+
+    populateLayout(parent, control, c);
+    populateControl(parent, control, c);
+    populateSprite(parent, control, c);
+
+    control.parent = parent;
+
+    return control;
+  } else if (c.properties['type'] === 'label') {
+    const control = new UILabelControl();
+
+    populateLayout(parent, control, c);
+    populateControl(parent, control, c);
+    populateText(parent, control, c);
 
     control.parent = parent;
 
@@ -507,6 +527,128 @@ function parseUI(uiStuff: Record<string, Record<string, UIFileVisualTreeElement>
     const c = all_controls[i];
     c.init();
     app.stage.addChild(c.getRenderableContainer());
+  }
+}
+
+function populateText(parent: UIControl | null, control: UILabelControl, c: UIFileVisualTreeElement) {
+  if (typeof c.properties['text'] === 'string') {
+    control.text = c.properties['text'];
+  }
+
+  if (typeof c.properties['shadow'] === 'boolean') {
+    control.shadow = c.properties['shadow'];
+  }
+
+  if (c.properties['color']) {
+    control.color = parseColor(c.properties['color']);
+  }
+
+  if (typeof c.properties['font_scale_factor'] === 'number') {
+    control.font_scale_factor = c.properties['font_scale_factor'];
+  }
+
+  if (typeof c.properties['font_size'] === 'string') {
+    switch (c.properties['font_size']) {
+      case 'small':
+        control.font_size = 'small';
+        break;
+      case 'normal':
+        control.font_size = 'normal';
+        break;
+      case 'large':
+        control.font_size = 'large';
+        break;
+      case 'extra_large':
+        control.font_size = 'extra_large';
+        break;
+    }
+  }
+}
+
+function populateSprite(parent: UIControl | null, control: UISpriteControl, c: UIFileVisualTreeElement) {
+  if (c.properties['color']) {
+    control.color = parseColor(c.properties['color']);
+  }
+
+  if (typeof c.properties['texture'] === 'string') {
+    control.texture = c.properties['texture'];
+  }
+
+  if (typeof c.properties['grayscale'] === 'boolean') {
+    control.grayscale = c.properties['grayscale'];
+  }
+
+  if (typeof c.properties['keep_ratio'] === 'boolean') {
+    control.keep_ratio = c.properties['keep_ratio'];
+  }
+
+  if (typeof c.properties['clip_ratio'] === 'number') {
+    control.clip_ratio = c.properties['clip_ratio'];
+  }
+
+  if (c.properties['nineslice_size']) {
+    if (typeof c.properties['nineslice_size'] === 'number') {
+      const s = clamp(c.properties['nineslice_size'], 0, Infinity);
+      control.nineslice_size = [s, s, s, s];
+    } else if (Array.isArray(c.properties['nineslice_size']) && c.properties['nineslice_size'].length === 4) {
+      control.nineslice_size = c.properties['nineslice_size'] as any;
+    }
+  }
+
+  if (typeof c.properties['tiled'] === 'string') {
+    if (c.properties['tiled'] === 'x') {
+      control.tiled = 'x';
+    } else if (c.properties['tiled'] === 'y') {
+      control.tiled = 'y';
+    }
+  }
+
+  if (typeof c.properties['tiled'] === 'boolean') {
+    control.tiled = c.properties['tiled'];
+  }
+
+  if (typeof c.properties['clip_direction'] === 'string') {
+    switch (c.properties['clip_direction']) {
+      case 'left':
+        control.clip_direction = 'left';
+        break;
+      case 'right':
+        control.clip_direction = 'right';
+        break;
+      case 'up':
+        control.clip_direction = 'up';
+        break;
+      case 'down':
+        control.clip_direction = 'down';
+        break;
+      // case 'center':
+      //   control.clip_direction = 'center';
+      //   break;
+    }
+  }
+
+  if (c.properties['tiled_scale'] && Array.isArray(c.properties['tiled_scale'])) {
+    if (c.properties['tiled_scale'].length === 2) {
+      control.tiled_scale = c.properties['tiled_scale'] as any;
+    }
+  }
+
+  if (c.properties['uv'] && Array.isArray(c.properties['uv'])) {
+    if (c.properties['uv'].length === 2) {
+      control.uv = c.properties['uv'] as any;
+    }
+  }
+
+  if (c.properties['uv_size'] && Array.isArray(c.properties['uv_size'])) {
+    if (c.properties['uv_size'].length === 2) {
+      control.uv_size = c.properties['uv_size'] as any;
+    }
+  }
+
+  if (c.properties['base_size'] && Array.isArray(c.properties['base_size'])) {
+    if (c.properties['base_size'].length === 2) {
+      control.base_size = c.properties['base_size'] as any;
+    }
   }
 }
 
@@ -642,6 +784,17 @@ function parseUITree(rootElement: string) {
 }
 
 function processUI() {
+  UISpriteControl.cacheTxr = {};
+
+  files.forEach((f) => {
+    if (f.type === 'image') {
+      document.body.prepend(f.img);
+      const base = new PIXI.BaseTexture(f.img);
+      const texture = new PIXI.Texture(base);
+      UISpriteControl.cacheTxr[f.name] = texture;
+    }
+  });
+
   const uiDefs = files.find((f) => f.name === '_ui_defs.json')!;
 
   if (uiDefs.type !== 'text') return;
