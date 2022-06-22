@@ -22,7 +22,7 @@
     "screens": [
       {
         "id": "start",
-        "target": "start.start_content_panel",
+        "target": "start.start_screen",
         "button_id": "button.menu_start",
         "context": {
           "variables": {
@@ -45,7 +45,7 @@
       },
       {
         "id": "death",
-        "target": "death.death_content_panel",
+        "target": "death.death_screen",
         "button_id": "button.menu_death",
         "context": {
           "variables": {

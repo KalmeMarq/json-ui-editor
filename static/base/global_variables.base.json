@@ -15,5 +15,6 @@
   "$c_color_format": [1.0, 0.333, 0.333], // Red
   "$d_color_format": [1.0, 0.333, 1.0], // Light Purple
   "$e_color_format": [1.0, 1.0, 0.333], // Yellow
-  "$f_color_format": [1.0, 1.0, 1.0] // White
+  "$f_color_format": [1.0, 1.0, 1.0], // White,
+  "$dialog_title_color": [0.25, 0.25, 0.25]
 }

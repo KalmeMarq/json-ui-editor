@@ -12,9 +12,19 @@ export class UIControl {
   private _anchor_from: AnchorPoint = 'center';
   private _anchor_to: AnchorPoint = 'center';
   private _visible: boolean = true;
-  private _children: UIControl[] = [];
+  protected _children: UIControl[] = [];
 
-  public init(screenWidth: number, screenHeight: number) {}
+  public init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number) {
+    this.onVisibilityChanged(this.visible);
+  }
+
+  public onVisibilityChanged(visible: boolean) {
+    this._container.visible = visible && !this.visible ? false : visible;
+
+    for (let i = 0; i < this._children.length; i++) {
+      this._children[i].onVisibilityChanged(visible);
+    }
+  }
 
   public getRenderableContainer() {
     return this._container;
@@ -98,41 +108,408 @@ export class UIControl {
 
     return c;
   }
+
+  protected getAnchoredOffset(width: number, height: number, screenWidth: number, screenHeight: number) {
+    let x = 0;
+    let y = 0;
+
+    switch (this.anchor_from) {
+      case 'top_left':
+        switch (this.anchor_to) {
+          case 'bottom_left':
+            y -= height;
+            break;
+          case 'bottom_middle':
+            x -= width / 4;
+            y -= height;
+            break;
+          case 'bottom_right':
+            x -= width;
+            y -= height;
+            break;
+          case 'left_middle':
+            y -= height / 2;
+            break;
+          case 'right_middle':
+            x -= width;
+            y -= height / 4;
+            break;
+          case 'center':
+            x -= width / 2;
+            y -= height / 2;
+            break;
+          case 'top_middle':
+            x -= width / 4;
+            y -= height / 2;
+            break;
+          case 'top_right':
+            x -= width;
+            y -= height / 2;
+            break;
+        }
+        break;
+      case 'bottom_left':
+        if (this.parent) {
+          y = this.parent.size[1];
+          y -= height;
+        } else {
+          y = screenHeight;
+          y -= height;
+        }
+
+        switch (this.anchor_to) {
+          case 'top_left':
+            y += height;
+            break;
+          case 'top_middle':
+            x -= width / 2;
+            y += height;
+            break;
+          case 'top_right':
+            x -= width;
+            y += height;
+            break;
+          case 'left_middle':
+            y += height / 2;
+            break;
+          case 'center':
+            x -= width / 2;
+            y += height / 2;
+            break;
+          case 'right_middle':
+            x -= width;
+            y += height / 2;
+            break;
+          case 'bottom_middle':
+            x -= width / 2;
+            break;
+          case 'bottom_right':
+            x -= width;
+            break;
+        }
+        break;
+      case 'bottom_middle':
+        if (this.parent) {
+          x = this.parent.size[0] / 2;
+          x -= width / 2;
+          y = this.parent.size[1];
+          y -= height;
+        } else {
+          x = screenWidth / 2;
+          x -= width / 2;
+          y = screenHeight;
+          y -= height;
+        }
+
+        switch (this.anchor_to) {
+          case 'top_left':
+            x += width / 2;
+            y += height;
+            break;
+          case 'top_middle':
+            y += height;
+            break;
+          case 'top_right':
+            x -= width / 2;
+            y += height;
+            break;
+          case 'left_middle':
+            x += width / 2;
+            y += height / 2;
+            break;
+          case 'center':
+            y += height / 2;
+            break;
+          case 'right_middle':
+            x -= width / 2;
+            y += height / 2;
+            break;
+          case 'bottom_left':
+            x += width / 2;
+            break;
+          case 'bottom_right':
+            x -= width / 2;
+            break;
+        }
+        break;
+      case 'bottom_right':
+        if (this.parent) {
+          x = this.parent.size[0];
+          x -= width;
+          y = this.parent.size[1];
+          y -= height;
+        } else {
+          x = screenWidth;
+          x -= width;
+          y = screenHeight;
+          y -= height;
+        }
+
+        switch (this.anchor_to) {
+          case 'top_left':
+            x += width;
+            y += height;
+            break;
+          case 'top_middle':
+            x += width / 2;
+            y += height;
+            break;
+          case 'top_right':
+            y += height;
+            break;
+          case 'left_middle':
+            x += width;
+            y += height / 2;
+            break;
+          case 'center':
+            x += width / 2;
+            y += height / 2;
+            break;
+          case 'right_middle':
+            y += height / 2;
+            break;
+          case 'bottom_left':
+            x += width;
+            break;
+          case 'bottom_middle':
+            x += width / 2;
+            break;
+        }
+        break;
+      case 'top_middle':
+        if (this.parent) {
+          x = this.parent.size[0] / 2;
+          x -= width / 2;
+        } else {
+          x = screenWidth / 2;
+          x -= width / 2;
+        }
+
+        switch (this.anchor_to) {
+          case 'top_left':
+            x += width / 2;
+            break;
+          case 'top_right':
+            x -= width / 2;
+            break;
+          case 'left_middle':
+            x += width / 2;
+            y -= height / 2;
+            break;
+          case 'right_middle':
+            x -= width / 2;
+            y -= height / 2;
+            break;
+          case 'center':
+            y -= height / 2;
+            break;
+          case 'bottom_left':
+            x += width / 2;
+            y -= height;
+            break;
+          case 'bottom_middle':
+            y -= height;
+            break;
+          case 'bottom_right':
+            x -= width / 2;
+            y -= height;
+            break;
+        }
+        break;
+      case 'top_right':
+        if (this.parent) {
+          x = this.parent.size[0];
+          x -= width;
+        } else {
+          x = screenWidth;
+          x -= width;
+        }
+
+        switch (this.anchor_to) {
+          case 'top_left':
+            x += width;
+            break;
+          case 'top_middle':
+            x += width / 2;
+            break;
+          case 'left_middle':
+            x += width;
+            y -= height / 2;
+            break;
+          case 'right_middle':
+            y -= height / 2;
+            break;
+          case 'center':
+            x += width / 2;
+            y -= height / 2;
+            break;
+          case 'bottom_left':
+            x += width;
+            y -= height;
+            break;
+          case 'bottom_right':
+            y -= height;
+            break;
+          case 'bottom_middle':
+            x += width / 2;
+            y -= height;
+            break;
+        }
+        break;
+      case 'left_middle':
+        if (this.parent) {
+          y = this.parent.size[1] / 2;
+          y -= height / 2;
+        } else {
+          y = screenHeight / 2;
+          y -= height / 2;
+        }
+
+        switch (this.anchor_to) {
+          case 'top_left':
+            y += height / 2;
+            break;
+          case 'top_middle':
+            x -= width / 2;
+            y += height / 2;
+            break;
+          case 'top_right':
+            x -= width;
+            y += height / 2;
+            break;
+          case 'center':
+            x -= width / 2;
+            break;
+          case 'right_middle':
+            x -= width;
+            break;
+          case 'bottom_left':
+            y -= height / 2;
+            break;
+          case 'bottom_right':
+            x -= width;
+            y -= height / 2;
+            break;
+          case 'bottom_middle':
+            x -= width / 2;
+            y -= height / 2;
+            break;
+        }
+        break;
+      case 'right_middle':
+        if (this.parent) {
+          x = this.parent.size[0];
+          x -= width;
+          y = this.parent.size[1] / 2;
+          y -= height / 2;
+        } else {
+          x = screenWidth;
+          x -= width;
+          y = screenHeight / 2;
+          y -= height / 2;
+        }
+
+        switch (this.anchor_to) {
+          case 'top_left':
+            x += width;
+            y += height / 2;
+            break;
+          case 'top_middle':
+            x += width / 2;
+            y += height / 2;
+            break;
+          case 'top_right':
+            y += height / 2;
+            break;
+          case 'left_middle':
+            x += width;
+            break;
+          case 'center':
+            x += width / 2;
+            break;
+          case 'bottom_left':
+            x += width;
+            y -= height / 2;
+            break;
+          case 'bottom_middle':
+            x += width / 2;
+            y -= height / 2;
+            break;
+          case 'bottom_right':
+            y -= height / 2;
+            break;
+        }
+        break;
+      case 'center':
+        if (this.parent) {
+          x = this.parent.size[0] / 2;
+          x -= width / 2;
+          y = this.parent.size[1] / 2;
+          y -= height / 2;
+        } else {
+          x = screenWidth / 2;
+          x -= width / 2;
+          y = screenHeight / 2;
+          y -= height / 2;
+        }
+
+        switch (this.anchor_to) {
+          case 'top_left':
+            x += width / 2;
+            y += height / 2;
+            break;
+          case 'top_middle':
+            y += height / 2;
+            break;
+          case 'top_right':
+            x -= width / 2;
+            y += height / 2;
+            break;
+          case 'left_middle':
+            x += width / 2;
+            break;
+          case 'right_middle':
+            x -= width / 2;
+            break;
+          case 'bottom_left':
+            x += width / 2;
+            y -= height / 2;
+            break;
+          case 'bottom_middle':
+            y -= height / 2;
+            break;
+          case 'bottom_right':
+            x -= width / 2;
+            y -= height / 2;
+            break;
+        }
+        break;
+    }
+
+    return [x, y];
+  }
 }
 
 export class UIPanelControl extends UIControl {
-  public override init(screenWidth: number, screenHeight: number): void {
-    let x = this.offset[0];
-    let y = this.offset[1];
-
-    if (this.parent) {
-      x += this.parent.offset[0];
-      y += this.parent.offset[1];
-    }
+  public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
+    super.init(offsetX, offsetY, screenWidth, screenHeight);
 
     let zIndex = this.layer;
     if (this.parent) {
       zIndex += this.parent.layer;
     }
 
-    switch (this.anchor_from) {
-      case 'top_left':
-        break;
-      case 'top_middle':
-        if (this.parent) {
-          let x0 = x;
-          x = this.parent.size[0] / 2;
-          x += x0 / 2;
-        } else {
-          let x0 = x;
-          x = screenWidth / 2;
-          x += x0 / 2;
-        }
-        break;
-    }
+    let [x, y] = this.getAnchoredOffset(this.size[0], this.size[1], screenWidth, screenHeight);
+
+    x += this.offset[0] + offsetX;
+    y += this.offset[1] + offsetY;
 
     this._container.position.set(x, y);
     this._container.zIndex = zIndex;
+
+    for (let i = 0; i < this._children.length; i++) {
+      this._children[i].init(x - offsetX, y - offsetY, screenWidth, screenHeight);
+    }
   }
 }
 
@@ -143,14 +520,8 @@ export class UILabelControl extends UIControl {
   private _font_size: FontSize = 'normal';
   private _font_scale_factor = 1.0;
 
-  public override init(): void {
-    let x = this.offset[0];
-    let y = this.offset[1];
-
-    if (this.parent) {
-      x += this.parent.offset[0];
-      y += this.parent.offset[1];
-    }
+  public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
+    super.init(offsetX, offsetY, screenWidth, screenHeight);
 
     let zIndex = this.layer;
     if (this.parent) {
@@ -195,10 +566,19 @@ export class UILabelControl extends UIControl {
     });
     txt.resolution = 2;
 
+    let [x, y] = this.getAnchoredOffset(this.size[0], this.size[1], screenWidth, screenHeight);
+
+    x += this.offset[0] + offsetX;
+    y += this.offset[1] + offsetY;
+
     this._container.addChild(txt);
 
     this._container.position.set(x, y);
     this._container.zIndex = zIndex;
+
+    for (let i = 0; i < this._children.length; i++) {
+      this._children[i].init(x - offsetX, y - offsetY, screenWidth, screenHeight);
+    }
   }
 
   public set text(text: string) {
@@ -245,17 +625,15 @@ export class UILabelControl extends UIControl {
 export class UIFillControl extends UIControl {
   private _color: [number, number, number, number] = [255, 255, 255, 1.0];
 
-  public override init(): void {
+  public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
+    super.init(offsetX, offsetY, screenWidth, screenHeight);
     const gf = new PIXI.Graphics();
     const color = (this._color[0] << 16) | (this._color[1] << 8) | (this._color[2] << 0);
 
-    let x = this.offset[0];
-    let y = this.offset[1];
+    let [x, y] = this.getAnchoredOffset(this.size[0], this.size[1], screenWidth, screenHeight);
 
-    if (this.parent) {
-      x += this.parent.offset[0];
-      y += this.parent.offset[1];
-    }
+    x += this.offset[0] + offsetX;
+    y += this.offset[1] + offsetY;
 
     let zIndex = this.layer;
     if (this.parent) {
@@ -269,6 +647,10 @@ export class UIFillControl extends UIControl {
     this._container.addChild(gf);
     this._container.position.set(x, y);
     this._container.zIndex = zIndex;
+
+    for (let i = 0; i < this._children.length; i++) {
+      this._children[i].init(x - offsetX, y - offsetY, screenWidth, screenHeight);
+    }
   }
 
   public set color(color: [number, number, number, number]) {
@@ -331,14 +713,9 @@ export class UICustomControl extends UIControl {
   _color1: [number, number, number, number] = [255, 255, 255, 1.0];
   _color2: [number, number, number, number] = [255, 255, 255, 1.0];
 
-  public override init(screenWidth: number, screenHeight: number): void {
-    let x = this.offset[0];
-    let y = this.offset[1];
-
-    if (this.parent) {
-      x += this.parent.offset[0];
-      y += this.parent.offset[1];
-    }
+  public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
+    super.init(offsetX, offsetY, screenWidth, screenHeight);
+    this._container.removeChildren();
 
     let zIndex = this.layer;
     if (this.parent) {
@@ -350,169 +727,17 @@ export class UICustomControl extends UIControl {
       this._container.addChild(c);
     }
 
-    switch (this.anchor_from) {
-      case 'top_left':
-        switch (this.anchor_to) {
-          case 'bottom_left':
-            y -= this.size[1];
-            break;
-          case 'bottom_middle':
-            x -= this.size[0] / 4;
-            y -= this.size[1];
-            break;
-          case 'bottom_right':
-            x -= this.size[0];
-            y -= this.size[1];
-            break;
-          case 'left_middle':
-            y -= this.size[1] / 2;
-            break;
-          case 'right_middle':
-            x -= this.size[0];
-            y -= this.size[1] / 4;
-            break;
-          case 'center':
-            x -= this.size[0] / 2;
-            y -= this.size[1] / 2;
-            break;
-          case 'top_middle':
-            x -= this.size[0] / 4;
-            y -= this.size[1] / 2;
-            break;
-          case 'top_right':
-            x -= this.size[0];
-            y -= this.size[1] / 2;
-            break;
-        }
-        break;
-      case 'bottom_left':
-        if (this.parent) {
-          y = this.parent.size[1];
-          y -= this.size[1];
-        } else {
-          y = screenHeight;
-          y -= this.size[1];
-        }
-        break;
-      case 'bottom_middle':
-        if (this.parent) {
-          x = this.parent.size[0] / 2;
-          x -= this.size[0] / 2;
-          y = this.parent.size[1];
-          y -= this.size[1];
-        } else {
-          x = screenWidth / 2;
-          x -= this.size[0] / 2;
-          y = screenHeight;
-          y -= this.size[1];
-        }
-        break;
-      case 'bottom_right':
-        if (this.parent) {
-          x = this.parent.size[0];
-          x -= this.size[0];
-          y = this.parent.size[1];
-          y -= this.size[1];
-        } else {
-          x = screenWidth;
-          x -= this.size[0];
-          y = screenHeight;
-          y -= this.size[1];
-        }
-        break;
-      case 'top_middle':
-        if (this.parent) {
-          x = this.parent.size[0] / 2;
-          x -= this.size[0] / 2;
-        } else {
-          x = screenWidth / 2;
-          x -= this.size[0] / 2;
-        }
+    let [x, y] = this.getAnchoredOffset(this.size[0], this.size[1], screenWidth, screenHeight);
 
-        switch (this.anchor_to) {
-          case 'top_left':
-            x += this.size[0] / 2;
-            break;
-          case 'top_right':
-            x -= this.size[0] / 2;
-            break;
-          case 'left_middle':
-            x += this.size[0] / 2;
-            y -= this.size[1] / 2;
-            break;
-          case 'right_middle':
-            x -= this.size[0] / 2;
-            y -= this.size[1] / 2;
-            break;
-          case 'center':
-            y -= this.size[1] / 2;
-            break;
-          case 'bottom_left':
-            x += this.size[0] / 2;
-            y -= this.size[1] / 2;
-            break;
-          case 'bottom_right':
-            x -= this.size[0] / 2;
-            y -= this.size[1] / 2;
-            break;
-        }
-        break;
-      case 'top_right':
-        if (this.parent) {
-          x = this.parent.size[0];
-          x -= this.size[0];
-        } else {
-          x = screenWidth;
-          x -= this.size[0];
-        }
-        break;
-      case 'left_middle':
-        if (this.parent) {
-          y = this.parent.size[1] / 2;
-          y -= this.size[1] / 2;
-        } else {
-          y = screenHeight / 2;
-          y -= this.size[1] / 2;
-        }
-        break;
-      case 'right_middle':
-        if (this.parent) {
-          x = this.parent.size[0];
-          x -= this.size[0];
-          y = this.parent.size[1] / 2;
-          y -= this.size[1] / 2;
-        } else {
-          x = screenWidth;
-          x -= this.size[0];
-          y = screenHeight / 2;
-          y -= this.size[1] / 2;
-        }
-        break;
-      case 'center':
-        if (this.parent) {
-          x = this.parent.size[0] / 2;
-          x -= this.size[0] / 2;
-          y = this.parent.size[1] / 2;
-          y -= this.size[1] / 2;
-        } else {
-          x = screenWidth / 2;
-          x -= this.size[0] / 2;
-          y = screenHeight / 2;
-          y -= this.size[1] / 2;
-        }
-        break;
-    }
-
-    x += this.offset[0];
-    y += this.offset[1];
-
-    if (this.parent) {
-      x += this.parent.offset[0];
-      y += this.parent.offset[1];
-    }
+    x += this.offset[0] + offsetX;
+    y += this.offset[1] + offsetY;
 
     this._container.position.set(x, y);
     this._container.zIndex = zIndex;
+
+    for (let i = 0; i < this._children.length; i++) {
+      this._children[i].init(x - offsetX, y - offsetY, screenWidth, screenHeight);
+    }
   }
 
   public set renderer(renderer: UICustomRenderer | null) {
@@ -571,32 +796,24 @@ export class UISpriteControl extends UIControl {
   private _clip_ratio = 1.0;
   private _clip_direction: ClipDirection = 'left';
 
-  public override init(): void {
+  public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
     if (this.texture === '') return;
 
-    if (this.texture.startsWith('data:image/')) {
+    if (this.texture.startsWith('data:image/') && UISpriteControl.cacheTxr[this.texture] === undefined) {
       const img = new Image();
       img.src = this.texture;
       const base = new PIXI.BaseTexture(img);
       const texture = new PIXI.Texture(base);
       img.onload = () => {
-        this.initImage();
+        UISpriteControl.cacheTxr[this.texture] = texture;
+        this.initImage(offsetX, offsetY, screenWidth, screenHeight);
       };
-      UISpriteControl.cacheTxr[this.texture] = texture;
     } else {
-      this.initImage();
+      this.initImage(offsetX, offsetY, screenWidth, screenHeight);
     }
   }
 
-  public initImage() {
-    let x = this.offset[0];
-    let y = this.offset[1];
-
-    if (this.parent) {
-      x += this.parent.offset[0];
-      y += this.parent.offset[1];
-    }
-
+  public initImage(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number) {
     let zIndex = this.layer;
     if (this.parent) {
       zIndex += this.parent.layer;
@@ -682,10 +899,19 @@ export class UISpriteControl extends UIControl {
       sprite.tint = (this.color[0] << 16) | (this.color[1] << 8) | this.color[2];
     }
 
+    let [x, y] = this.getAnchoredOffset(w, h, screenWidth, screenHeight);
+
+    x += this.offset[0] + offsetX;
+    y += this.offset[1] + offsetY;
+
     this._container.addChild(sprite);
 
     this._container.position.set(x, y);
     this._container.zIndex = zIndex;
+
+    for (let i = 0; i < this._children.length; i++) {
+      this._children[i].init(x - offsetX, y - offsetY, screenWidth, screenHeight);
+    }
   }
 
   public set texture(texture: string) {

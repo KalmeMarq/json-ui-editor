@@ -104,16 +104,37 @@ body {
   flex-direction: column;
   height: 100%;
   border: 1px solid transparent;
+  overflow-y: auto;
 }
 
 #explorer-list.drag-over {
   border: 1px solid #007FD4;
 }
 
+#explorer-list::-webkit-scrollbar {
+  background: transparent;
+  width: 10px;
+}
+
+#explorer-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0);
+  transition-duration: 200ms;
+  transition-property: background;
+}
+
+#explorer-list:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#explorer-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
 .file-item {
   cursor: pointer;
   background: none;
   height: 22px;
+  min-height: 22px;
   border: 1px solid transparent;
 }
 
@@ -148,6 +169,9 @@ body {
 
 .file-label {
   color: #DDD;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .toolbar {

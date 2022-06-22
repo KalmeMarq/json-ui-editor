@@ -7,13 +7,14 @@ import stripJsonComments from 'strip-json-comments';
 import uiSchema from '../static/schemas/ui.schema.json?raw';
 import uiDefsSchema from '../static/schemas/ui_defs.schema.json?raw';
 import screenDefsSchema from '../static/schemas/screen_defs.schema.json?raw';
+import globalVarsSchema from '../static/schemas/global_variables.schema.json?raw';
 import startBase from '../static/base/start_screen.base.json?raw';
 import screenDefbase from '../static/base/screendef.base.json?raw';
 import uiCommonbase from '../static/base/ui_common.base.json?raw';
 import globalVariablesBase from '../static/base/global_variables.base.json?raw';
 import uiDefsBase from '../static/base/ui_defs.base.json?raw';
 import { parseJsonC } from './utils';
-import { ExplorerFile, UIFileDefinitionTree, UIFileDefinitionTreeElement, UIFileVisualTree, UIFileVisualTreeElement } from './types';
+import { ExplorerFile, ExplorerFileImage, ExplorerFileJson, ExplorerFileText, UIFileDefinitionTree, UIFileDefinitionTreeElement, UIFileVisualTree, UIFileVisualTreeElement } from './types';
 import { UISpriteControl } from './controls';
 import './debug';
 import { createControl } from './controls_factory';
@@ -24,6 +25,9 @@ uiDefsUri = uiDefsUri.with({ path: '_ui_defs.json' });
 
 let screenDefsUri = new monaco.Uri();
 screenDefsUri = screenDefsUri.with({ path: '_screen_definitions.json' });
+
+let globalVarsUri = new monaco.Uri();
+globalVarsUri = globalVarsUri.with({ path: '_global_variables.json' });
 
 const editor = monaco.editor.create(document.getElementById('editor')!, {
   value: startBase,
@@ -44,8 +48,13 @@ monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
   schemas: [
     {
       uri: 'ui',
-      fileMatch: ['*', '!_ui_defs.json', '!_screen_definitions.json'],
+      fileMatch: ['*', '!_ui_defs.json', '!_screen_definitions.json', '!_global_variables.json'],
       schema: JSON.parse(stripJsonComments(uiSchema))
+    },
+    {
+      uri: globalVarsUri.toString(),
+      fileMatch: ['_global_variables.json'],
+      schema: JSON.parse(stripJsonComments(globalVarsSchema))
     },
     {
       uri: uiDefsUri.toString(),
@@ -58,6 +67,18 @@ monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
       schema: JSON.parse(stripJsonComments(screenDefsSchema))
     }
   ]
+});
+
+monaco.languages.json.jsonDefaults.setModeConfiguration({
+  documentSymbols: true,
+  colors: true,
+  tokens: true,
+  completionItems: true,
+  diagnostics: true,
+  hovers: true,
+  documentFormattingEdits: true,
+  documentRangeFormattingEdits: true,
+  selectionRanges: true
 });
 
 const app = new PIXI.Application({
@@ -73,31 +94,31 @@ app.stage.sortableChildren = true;
 
 let files: ExplorerFile[] = [
   {
-    type: 'text',
+    type: 'json',
     name: '_screen_definitions.json',
     contextMenu: false,
     model: monaco.editor.createModel(screenDefbase, 'json', screenDefsUri)
   },
   {
-    type: 'text',
+    type: 'json',
     name: '_global_variables.json',
     contextMenu: false,
-    model: monaco.editor.createModel(globalVariablesBase, 'json')
+    model: monaco.editor.createModel(globalVariablesBase, 'json', globalVarsUri)
   },
   {
-    type: 'text',
+    type: 'json',
     name: '_ui_defs.json',
     contextMenu: false,
     model: monaco.editor.createModel(uiDefsBase, 'json', uiDefsUri)
   },
   {
-    type: 'text',
+    type: 'json',
     name: 'start_screen.json',
     contextMenu: false,
     model: monaco.editor.createModel(startBase, 'json')
   },
   {
-    type: 'text',
+    type: 'json',
     name: 'ui_common.json',
     contextMenu: false,
     model: monaco.editor.createModel(uiCommonbase, 'json')
@@ -110,6 +131,7 @@ explorer.innerHTML = '';
 const filecontextMenu = document.getElementById('file-contextmenu')!;
 
 editor.setModel((files.find((f) => f.name === 'start_screen.json') as any).model);
+editor.focus();
 
 function writeToConsole(text: string) {
   const p = document.createElement('p');
@@ -163,7 +185,7 @@ function createFile(file: ExplorerFile) {
   btn.title = file.name;
 
   btn.addEventListener('click', () => {
-    if (file.type === 'text') {
+    if (file.type === 'text' || file.type === 'json') {
       document.getElementById('editor')!.style.display = 'block';
       document.getElementById('image-previewer')!.style.display = 'none';
       document.getElementById('image-previewer')!.innerHTML = '';
@@ -191,7 +213,7 @@ function createFile(file: ExplorerFile) {
   cont.className = 'file-item-content';
   const ficon = document.createElement('div');
   ficon.className = 'file-icon';
-  ficon.innerHTML = '<img src="icons/file_type_' + (file.type === 'text' ? 'json' : 'image') + '.svg">';
+  ficon.innerHTML = '<img src="icons/file_type_' + file.type + '.svg">';
   const flabel = document.createElement('div');
   flabel.className = 'file-label';
   flabel.textContent = file.name;
@@ -365,7 +387,7 @@ function parseUIVisualTree(target: string) {
     uiStuff[namespace] = tree;
   });
 
-  dealWithVariables(uiStuff, target);
+  console.log(dealWithVariables(uiStuff, target));
 
   try {
     parseUI(uiStuff, target);
@@ -388,9 +410,67 @@ function dealWithVariables(uiStuff: Record<string, Record<string, UIFileVisualTr
     return;
   }
 
-  console.log(uiStuff);
-
   const tar = uiStuff[target_namespace][target_name];
+
+  const globalVars = files.find((f) => f.name === '_global_variables.json' && f.type === 'json');
+
+  if (globalVars && globalVars.type === 'json') {
+    Object.entries(JSON.parse(stripJsonComments(globalVars.model.getValue()))).forEach(([var_nm, var_value]) => {
+      tar.variables[var_nm.replace('|default', '')] = { isDefault: var_nm.endsWith('|default'), value: var_value as any };
+    });
+  }
+
+  if (tar.properties['controls'] && Array.isArray(tar.properties['controls'])) {
+    (tar.properties['controls'] as UIFileVisualTreeElement[]).forEach((c) => {
+      Object.entries(tar.variables).forEach(([var_nm, var_value]) => {
+        if (c.variables[var_nm]) {
+          if (c.variables[var_nm].isDefault) {
+            c.variables[var_nm.replace('|default', '')] = { isDefault: var_value.isDefault, value: var_value.value };
+          }
+        } else {
+          c.variables[var_nm.replace('|default', '')] = { isDefault: var_value.isDefault, value: var_value.value };
+        }
+      });
+
+      Object.entries(c.properties).forEach(([prop_nm, prop_vl]) => {
+        if (typeof prop_vl === 'string' && prop_vl.startsWith('$')) {
+          if (tar.variables[prop_vl]) {
+            c.properties[prop_nm] = tar.variables[prop_vl].value;
+          }
+        }
+      });
+
+      dealWithVariablesElement(c);
+    });
+  }
+
+  return uiStuff;
+}
+
+function dealWithVariablesElement(tar: UIFileVisualTreeElement) {
+  if (tar.properties['controls'] && Array.isArray(tar.properties['controls'])) {
+    (tar.properties['controls'] as UIFileVisualTreeElement[]).forEach((c) => {
+      Object.entries(tar.variables).forEach(([var_nm, var_value]) => {
+        if (c.variables[var_nm]) {
+          if (c.variables[var_nm].isDefault) {
+            c.variables[var_nm.replace('|default', '')] = { isDefault: var_value.isDefault, value: var_value.value };
+          }
+        } else {
+          c.variables[var_nm.replace('|default', '')] = { isDefault: var_value.isDefault, value: var_value.value };
+        }
+      });
+
+      Object.entries(c.properties).forEach(([prop_nm, prop_vl]) => {
+        if (typeof prop_vl === 'string' && prop_vl.startsWith('$')) {
+          if (tar.variables[prop_vl]) {
+            c.properties[prop_nm] = tar.variables[prop_vl].value;
+          }
+        }
+      });
+
+      dealWithVariablesElement(c);
+    });
+  }
 }
 
 function parseUI(uiStuff: Record<string, Record<string, UIFileVisualTreeElement>>, target: string) {
@@ -414,9 +494,10 @@ function parseUI(uiStuff: Record<string, Record<string, UIFileVisualTreeElement>
 
   // console.log(all_controls);
 
+  root.init(0, 0, app.renderer.width, app.renderer.height);
+
   for (let i = 0; i < all_controls.length; i++) {
     const c = all_controls[i];
-    c.init(app.renderer.width, app.renderer.height);
     app.stage.addChild(c.getRenderableContainer());
   }
 }
@@ -459,7 +540,7 @@ function processUI() {
 
   const uiDefs = files.find((f) => f.name === '_ui_defs.json')!;
 
-  if (uiDefs.type !== 'text') return;
+  if (uiDefs.type !== 'json') return;
 
   try {
     const ui_defs = parseJsonC(uiDefs.model.getValue()).ui_defs as string[];
@@ -472,7 +553,7 @@ function processUI() {
     ui_defs.forEach((def) => {
       const defF = files.find((f) => f.name === def);
 
-      if (defF?.type !== 'text') return;
+      if (defF?.type !== 'json') return;
 
       if (defF) {
         try {
@@ -492,7 +573,7 @@ function processUI() {
 
     try {
       const screenDefs = files.find((f) => f.name === '_screen_definitions.json')!;
-      if (screenDefs.type !== 'text') return;
+      if (screenDefs.type !== 'json') return;
 
       const screen_defs = parseJsonC(screenDefs.model.getValue()).screen_definitions;
 
@@ -531,62 +612,52 @@ window.addEventListener('resize', () => {
   processUI();
 });
 
-explorer.addEventListener('drag', (e) => {
-  e.preventDefault();
-});
-
-explorer.addEventListener('dragover', (e) => {
-  e.preventDefault();
-});
-
-explorer.addEventListener('dragend', (e) => {
-  e.preventDefault();
-  explorer.classList.remove('drag-over');
-});
+['drag', 'dragover', 'dragend', 'dragenter', 'dragleave', 'drop'].forEach((name) =>
+  explorer.addEventListener(name, (e) => {
+    e.preventDefault();
+  })
+);
 
 explorer.addEventListener('dragenter', (e) => {
-  e.preventDefault();
   explorer.classList.add('drag-over');
 });
 
 explorer.addEventListener('dragleave', (e) => {
-  e.preventDefault();
   explorer.classList.remove('drag-over');
 });
 
 explorer.addEventListener('drop', (e) => {
-  e.preventDefault();
   explorer.classList.remove('drag-over');
 
   if (e.dataTransfer) {
     for (let i = 0; i < e.dataTransfer.files.length; i++) {
       const j = e.dataTransfer.files[i];
       const name = j.name;
+      const type = j.type;
 
-      if (j.type === 'image/png') {
+      if (type === 'image/png' || type === 'image/jpg' || type === 'image/jpeg') {
         j.arrayBuffer().then((d) => {
           const b = new Blob([d]);
           const img = new Image();
           img.src = URL.createObjectURL(b);
           img.onload = () => {
-            const obj: any = {
+            const obj: ExplorerFileImage = {
               type: 'image',
               name: name,
               contextMenu: true,
-              img
+              element: img
             };
             files.push(obj);
             createFile(obj);
           };
         });
-      } else {
+      } else if (type === 'application/json' || type.startsWith('text')) {
         j.text().then((t) => {
-          const model = monaco.editor.createModel(t, 'json');
+          const model = monaco.editor.createModel(t, type === 'application/json' ? 'json' : 'plaintext');
 
-          const obj: any = {
-            type: 'text',
+          const obj: ExplorerFileJson | ExplorerFileText = {
+            type: type === 'application/json' ? 'json' : 'text',
             name,
-            data: t,
             contextMenu: true,
             model
           };
