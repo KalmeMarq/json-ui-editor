@@ -1,66 +1,27 @@
 import * as PIXI from 'pixi.js';
+import { loadShader } from './utils';
 import { Color } from './types';
 
-export class Vignette extends PIXI.Container {}
+export class Vignette extends PIXI.Container {
+  public static shader = PIXI.Shader.from(undefined, undefined, {});
+  private w: number;
+  private h: number;
+  private geo: PIXI.Geometry;
+  private mesh: PIXI.Mesh<PIXI.Shader>;
 
-/* 
-class VignetteFilter extends PIXI.Filter {
-  private static frag = [
-    'precision mediump float;',
-    'varying vec2 vTextureCoord;',
-    'uniform sampler2D uSampler;',
-    'uniform float size;',
-    'uniform float amount;',
-    'uniform float focalPointX;',
-    'uniform float focalPointY;',
-    'void main() {',
-    '	vec3 rgb = vec3(1.0f, 1.0f, 1.0f);',
-    '	float dist = distance(vTextureCoord, vec2(focalPointX, focalPointY));',
-    '	rgb *= smoothstep(0.8, size * 0.799, dist * (0.5 * amount + size));',
-    '	gl_FragColor = vec4(vec3(rgb), 1.0);',
-    '}'
-  ].join('');
-
-  constructor(options?: { size?: number; amount: number; focalPointX: number; focalPointY: number }) {
-    super(undefined, VignetteFilter.frag, {
-      size: { type: '1f', value: options?.size || 0.5 },
-      amount: { type: '1f', value: options?.amount || 0.5 },
-      focalPointX: { type: '1f', value: options?.focalPointX || 0.5 },
-      focalPointY: { type: '1f', value: options?.focalPointY || 0.5 }
-    });
+  public static async preloadShader() {
+    Vignette.shader = await loadShader('vignette');
   }
 
-  public get focalPointX() {
-    return this.uniforms['focalPointX'].value;
-  }
-
-  public set focalPointX(value: number) {
-    this.uniforms['focalPointX'].value = value;
-  }
-
-  public get focalPointY() {
-    return this.uniforms['focalPointY'].value;
-  }
-
-  public set focalPointY(value: number) {
-    this.uniforms['focalPointY'].value = value;
-  }
-
-  public get size() {
-    return this.uniforms['size'].value;
-  }
-
-  public set size(value: number) {
-    this.uniforms['size'].value = value;
-  }
-
-  public get amount() {
-    return this.uniforms['amount'].value;
-  }
-
-  public set amount(value: number) {
-    this.uniforms['amount'].value = value;
+  public constructor(width: number, height: number) {
+    super();
+    this.w = width;
+    this.h = height;
+    this.geo = new PIXI.Geometry();
+    this.geo.addAttribute('aVertexPosition', [0, 0, width, 0, width, height, width, height, 0, height, 0, 0], 2);
+    // const c0 = [0.0, 0.0, 0.0, 1.0];
+    // this.geo.addAttribute('aColor', [...c0, ...c0, ...c0, ...c0, ...c0, ...c0], 4);
+    this.mesh = new PIXI.Mesh(this.geo, Vignette.shader);
+    this.addChild(this.mesh);
   }
 }
-
-*/

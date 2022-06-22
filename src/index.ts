@@ -19,6 +19,8 @@ import { UISpriteControl } from './controls';
 import './debug';
 import { createControl } from './controls_factory';
 import { PIXI_SCALE_MODE, UI_SCALE } from './constants';
+import { Gradient } from './gradient';
+import { Vignette } from './vignette';
 
 let uiDefsUri = new monaco.Uri();
 uiDefsUri = uiDefsUri.with({ path: '_ui_defs.json' });
@@ -28,6 +30,9 @@ screenDefsUri = screenDefsUri.with({ path: '_screen_definitions.json' });
 
 let globalVarsUri = new monaco.Uri();
 globalVarsUri = globalVarsUri.with({ path: '_global_variables.json' });
+
+await Gradient.preloadShader();
+await Vignette.preloadShader();
 
 const editor = monaco.editor.create(document.getElementById('editor')!, {
   value: startBase,

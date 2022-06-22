@@ -2,6 +2,7 @@ import { AnchorPoint, ClipDirection, Color, FontSize, GradientDirection, Tiled }
 import { clamp } from './utils';
 import * as PIXI from 'pixi.js';
 import { Gradient } from './gradient';
+import { Vignette } from './vignette';
 
 export class UIControl {
   protected _parent: UIControl | null = null;
@@ -693,35 +694,11 @@ export class UICustomGradientRenderer extends UICustomRenderer {
 
 export class UICustomVignetteRenderer extends UICustomRenderer {
   getRenderable(control: UICustomControl): PIXI.DisplayObject {
-    const vig = new PIXI.Container();
-
-    // vig.width = control.size[0];
-    // vig.height = control.size[1];
-
-    // // const gf = new PIXI.Graphics();
-    // // gf.beginFill(0xff0000, 0.0);
-    // // gf.drawRect(0, 0, control.size[0], control.size[1]);
-    // // gf.endFill();
-
-    // // vig.addChild(gf);
-
-    // const crt = new CRTFilter();
-    // crt.vignetting = 0.25;
-    // crt.vignettingAlpha = 0.5;
-    // crt.vignettingBlur = 0.5;
-    // crt.lineContrast = 0;
-    // crt.lineWidth = 0;
-    // crt.verticalLine = false;
-
-    // vig.filters = [
-    //   new VignetteFilter({
-    //     size: 1,
-    //     amount: 0.5,
-    //     focalPointX: 0.5,
-    //     focalPointY: 0.5
-    //   })
-    // ];
-
+    const vig = new Vignette(
+      control.size[0],
+      control.size[1]
+      // control.gradient_direction === 'vertical' ? [control.color1, control.color2, control.color1, control.color2] : [control.color1, control.color1, control.color2, control.color2]
+    );
     return vig;
   }
 }

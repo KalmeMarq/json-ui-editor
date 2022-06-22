@@ -49,7 +49,7 @@
 
   // the target element (as if it was the screen element). Do not delete it!
   "start_screen@common.base_screen": {
-    "$grad_dir": "horizontal",
+    "$grad_dir": "vertical",
     "anchor_from": "top_left",
     "anchor_to": "top_left",
     "controls": [
@@ -69,7 +69,8 @@
       {
         "v": {
           "type": "custom",
-          "renderer": "vignette_renderer"
+          "renderer": "vignette_renderer",
+          "ignored": true
         }
       }
     ]

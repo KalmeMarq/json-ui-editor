@@ -1,3 +1,4 @@
+import * as PIXI from 'pixi.js';
 import stripJsonComments from 'strip-json-comments';
 import { Color } from './types';
 
@@ -178,6 +179,25 @@ export function colorFromHSL(color: string): Color {
   }
 
   return [r, g, b, a];
+}
+
+/* { vertex: string; fragment: string; uniforms?: { name: string; type: string; value: unknown }[] } */
+export async function loadShader(name: string): Promise<PIXI.Shader> {
+  const def = await (await fetch('./shaders/' + name + '.json')).json();
+
+  const vert = await (await fetch('./shaders/' + def.vertex + '.vert')).text();
+  const frag = await (await fetch('./shaders/' + def.fragment + '.frag')).text();
+
+  const uniforms: Record<string, unknown> = {};
+  if (def.uniforms !== uniforms && Array.isArray(def.uniforms)) {
+    def.uniforms.forEach((uni: { name: string; type: string; value: unknown }) => {
+      uniforms[uni.name] = { type: uni.type, value: uni.value };
+    });
+  }
+
+  const shader = PIXI.Shader.from(vert, frag, uniforms);
+
+  return shader;
 }
 
 export function tokenizeAreaValue(value: string) {

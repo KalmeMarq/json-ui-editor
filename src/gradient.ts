@@ -1,34 +1,17 @@
 import * as PIXI from 'pixi.js';
+import { loadShader } from './utils';
 import { Color } from './types';
 
 export class Gradient extends PIXI.Container {
-  private static vertexSrc = `
-    precision mediump float;
-    attribute vec2 aVertexPosition;
-    attribute vec4 aColor;
-    attribute vec2 aUvs;
-    uniform mat3 translationMatrix;
-    uniform mat3 projectionMatrix;
-    varying vec4 vColor;
-    void main() {
-        vColor = aColor;
-        gl_Position = vec4((projectionMatrix * translationMatrix * vec3(aVertexPosition, 1.0)).xy, 0.0, 1.0);
-    }
-  `;
-
-  private static fragmentSrc = `
-    precision mediump float;
-    varying vec4 vColor;
-    void main() {
-      gl_FragColor = vec4(vColor);
-    }
-  `;
-
-  public static shader = PIXI.Shader.from(Gradient.vertexSrc, Gradient.fragmentSrc, {});
+  public static shader = PIXI.Shader.from(undefined, undefined, {});
   private w: number;
   private h: number;
   private geo: PIXI.Geometry;
   private mesh: PIXI.Mesh<PIXI.Shader>;
+
+  public static async preloadShader() {
+    Gradient.shader = await loadShader('gradient');
+  }
 
   public constructor(width: number, height: number, colors: [Color, Color, Color, Color]) {
     super();
