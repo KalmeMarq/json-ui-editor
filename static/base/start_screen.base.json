@@ -14,7 +14,7 @@
     "type": "image",
     "texture": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAhCAYAAADUIPtUAAAAAklEQVR4AewaftIAAAC9SURBVK3BwXGDMBCG0W//UJGacAU6qQwaSCrQhSsVqA+2LEUZx2P7EALMvme865xj/DKe+sAZZsZgDB/c9YGzbrcb67p+Al8G9IEHd+eoWis/WmuIF+7OVSKICCKCiCAiiAgigoggIogIIoKIICKICCKCiCAiyMSOeZ55SClRSuEv4h/ubu5uy7KwRwSZ2JFSYtu2zgETO0opuDtHiCAiiLio1sor467nnLmqtYbx1HPOnNVaYzDjXec8Y/gGSPg0olRZzQgAAAAASUVORK5CYII=",
     "nineslice_size": [8, 23, 8, 8],
-    "size": [128, 120],
+    "size": "$dialog_size",
     "layer": 1,
     "controls": [
       {
@@ -53,7 +53,7 @@
     "anchor_from": "top_left",
     "anchor_to": "top_left",
     "controls": [
-      { "dialog@dialog": {} },
+      { "dialog@dialog": { "$dialog_size": [128, 120] } },
       {
         "filler": {
           "type": "custom",

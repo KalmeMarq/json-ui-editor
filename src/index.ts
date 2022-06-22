@@ -423,7 +423,7 @@ function dealWithVariables(uiStuff: Record<string, Record<string, UIFileVisualTr
   if (tar.properties['controls'] && Array.isArray(tar.properties['controls'])) {
     (tar.properties['controls'] as UIFileVisualTreeElement[]).forEach((c) => {
       Object.entries(tar.variables).forEach(([var_nm, var_value]) => {
-        if (c.variables[var_nm]) {
+        if (c.variables[var_nm] !== undefined) {
           if (c.variables[var_nm].isDefault) {
             c.variables[var_nm.replace('|default', '')] = { isDefault: var_value.isDefault, value: var_value.value };
           }
@@ -433,9 +433,10 @@ function dealWithVariables(uiStuff: Record<string, Record<string, UIFileVisualTr
       });
 
       Object.entries(c.properties).forEach(([prop_nm, prop_vl]) => {
+        console.log(c.variables);
         if (typeof prop_vl === 'string' && prop_vl.startsWith('$')) {
-          if (tar.variables[prop_vl]) {
-            c.properties[prop_nm] = tar.variables[prop_vl].value;
+          if (c.variables[prop_vl]) {
+            c.properties[prop_nm] = c.variables[prop_vl].value;
           }
         }
       });
@@ -451,7 +452,7 @@ function dealWithVariablesElement(tar: UIFileVisualTreeElement) {
   if (tar.properties['controls'] && Array.isArray(tar.properties['controls'])) {
     (tar.properties['controls'] as UIFileVisualTreeElement[]).forEach((c) => {
       Object.entries(tar.variables).forEach(([var_nm, var_value]) => {
-        if (c.variables[var_nm]) {
+        if (c.variables[var_nm] !== undefined) {
           if (c.variables[var_nm].isDefault) {
             c.variables[var_nm.replace('|default', '')] = { isDefault: var_value.isDefault, value: var_value.value };
           }
@@ -461,9 +462,10 @@ function dealWithVariablesElement(tar: UIFileVisualTreeElement) {
       });
 
       Object.entries(c.properties).forEach(([prop_nm, prop_vl]) => {
+        console.log(c.variables);
         if (typeof prop_vl === 'string' && prop_vl.startsWith('$')) {
-          if (tar.variables[prop_vl]) {
-            c.properties[prop_nm] = tar.variables[prop_vl].value;
+          if (c.variables[prop_vl]) {
+            c.properties[prop_nm] = c.variables[prop_vl].value;
           }
         }
       });
