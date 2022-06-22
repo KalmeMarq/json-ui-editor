@@ -15,6 +15,7 @@ export class UIControl {
   private _anchor_to: AnchorPoint = 'center';
   private _visible: boolean = true;
   protected _children: UIControl[] = [];
+  private _property_bag: Record<string, unknown> = {};
 
   public init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number) {
     this.onVisibilityChanged(this.visible);
@@ -38,6 +39,14 @@ export class UIControl {
 
   public get parent() {
     return this._parent;
+  }
+
+  public set property_bag(property_bag: Record<string, unknown>) {
+    this._property_bag = property_bag;
+  }
+
+  public get property_bag() {
+    return this._property_bag;
   }
 
   public set size(size: [number, number]) {
@@ -703,12 +712,50 @@ export class UICustomVignetteRenderer extends UICustomRenderer {
   }
 }
 
+export class UICustomNametagRenderer extends UICustomRenderer {
+  public override getRenderable(control: UICustomControl): PIXI.Container {
+    let playername = (control.property_bag['#playername'] as string) ?? 'Steve';
+    let xpadding = (control.property_bag['#x_padding'] as number) ?? 0;
+    let ypadding = (control.property_bag['#y_padding'] as number) ?? 0;
+
+    const txt = new PIXI.Text(playername, {
+      fontFamily: 'Minecraft',
+      fontSize: 8,
+      fill: (control.text_color[0] << 16) | (control.text_color[1] << 8) | control.text_color[2]
+    });
+    txt.resolution = 2;
+
+    const w = txt.width + 6 + xpadding;
+    const h = txt.height + 4 + ypadding;
+
+    const gf = new PIXI.Graphics();
+    gf.beginFill((control.background_color[0] << 16) | (control.background_color[1] << 8) | control.background_color[2], control.background_color[3]);
+    gf.drawRect(0, 0, w, h);
+    gf.endFill();
+
+    const cont = new PIXI.Container();
+    cont.width = w;
+    cont.height = h;
+
+    txt.position.set(3 + xpadding / 2, 2 + ypadding / 2);
+
+    cont.addChild(gf);
+    cont.addChild(txt);
+
+    control.size = [w, h];
+
+    return cont;
+  }
+}
+
 export class UICustomControl extends UIControl {
   _renderer: null | UICustomRenderer = null;
   _gradient_direction: GradientDirection = 'vertical';
   _color: [number, number, number, number] = [255, 255, 255, 1.0];
   _color1: [number, number, number, number] = [255, 255, 255, 1.0];
   _color2: [number, number, number, number] = [255, 255, 255, 1.0];
+  _text_color: [number, number, number, number] = [255, 255, 255, 1.0];
+  _background_color: [number, number, number, number] = [50, 50, 50, 0.6];
 
   public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
     super.init(offsetX, offsetY, screenWidth, screenHeight);
@@ -745,7 +792,7 @@ export class UICustomControl extends UIControl {
     return this._renderer;
   }
 
-  public set color(color: [number, number, number, number]) {
+  public set color(color: Color) {
     this._color = color;
   }
 
@@ -753,7 +800,23 @@ export class UICustomControl extends UIControl {
     return this._color;
   }
 
-  public set color1(color1: [number, number, number, number]) {
+  public set text_color(text_color: Color) {
+    this._text_color = text_color;
+  }
+
+  public get text_color() {
+    return this._text_color;
+  }
+
+  public set background_color(background_color: Color) {
+    this._background_color = background_color;
+  }
+
+  public get background_color() {
+    return this._background_color;
+  }
+
+  public set color1(color1: Color) {
     this._color1 = color1;
   }
 
@@ -761,7 +824,7 @@ export class UICustomControl extends UIControl {
     return this._color1;
   }
 
-  public set color2(color2: [number, number, number, number]) {
+  public set color2(color2: Color) {
     this._color2 = color2;
   }
 

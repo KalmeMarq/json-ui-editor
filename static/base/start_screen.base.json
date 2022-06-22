@@ -72,6 +72,21 @@
           "renderer": "vignette_renderer",
           "ignored": true
         }
+      },
+      {
+        "nm": {
+          "type": "custom",
+          "renderer": "name_tag_renderer",
+          "offset": [80, 0],
+          "text_color": "$b_color_format",
+          "background_color": [0.2, 0.5, 1, 0.6],
+          "layer": 20,
+          "property_bag": {
+            "#playername": "Notch",
+            "#x_padding": 10,
+            "#y_padding": 2 // exclusive
+          }
+        }
       }
     ]
   }

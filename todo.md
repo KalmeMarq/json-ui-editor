@@ -13,7 +13,9 @@
   - [x] fill_renderer (exclusive)
     - [x] color
   - [ ] vignette_renderer
-  - [ ] name_tag_renderer
+  - [x] name_tag_renderer
+    - [x] text_color
+    - [x] background_color
   - [ ] progress_bar_renderer
     - [ ] primary_color
     - [ ] secondary_color
@@ -55,6 +57,15 @@
   - [ ] opacity_override
   - [ ] vignette_blur_override (exclusive)
   - [ ] vignette_amount_override (exclusive)
+  - [x] #playername
+  - [x] #x_padding
+  - [x] #y_padding (exclusive)
+  - [ ] is_durability
+  - [ ] round_value
+  - [ ] #progress_bar_current_amount
+  - [ ] #progress_bar_total_amount
+  - [ ] #progress_bar_visible
+  - [ ] #hover_text
 - [x] controls
 - [ ] variables
 - [x] anchor_from/anchor_to

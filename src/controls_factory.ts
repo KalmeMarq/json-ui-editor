@@ -1,5 +1,5 @@
 import { UI_SCALE } from './constants';
-import { UIControl, UICustomControl, UICustomFillRenderer, UICustomGradientRenderer, UICustomVignetteRenderer, UIFillControl, UILabelControl, UIPanelControl, UISpriteControl } from './controls';
+import { UIControl, UICustomControl, UICustomFillRenderer, UICustomGradientRenderer, UICustomNametagRenderer, UICustomVignetteRenderer, UIFillControl, UILabelControl, UIPanelControl, UISpriteControl } from './controls';
 import { UIFileVisualTreeElement } from './types';
 import { clamp, evalArea, parseColor, resolveGradientDirection } from './utils';
 
@@ -196,6 +196,14 @@ function populateCustom(parent: UIControl | null, control: UICustomControl, c: U
     control.color1 = parseColor(c.properties['color1']);
   }
 
+  if (c.properties['text_color']) {
+    control.text_color = parseColor(c.properties['text_color']);
+  }
+
+  if (c.properties['background_color']) {
+    control.background_color = parseColor(c.properties['background_color']);
+  }
+
   if (c.properties['color2']) {
     control.color2 = parseColor(c.properties['color2']);
   }
@@ -215,6 +223,9 @@ function populateCustom(parent: UIControl | null, control: UICustomControl, c: U
       case 'vignette_renderer':
         control.renderer = new UICustomVignetteRenderer();
         break;
+      case 'name_tag_renderer':
+        control.renderer = new UICustomNametagRenderer();
+        break;
     }
   }
 }
@@ -230,6 +241,10 @@ function populateControl(parent: UIControl | null, control: UIControl, c: UIFile
 
   if (typeof c.properties['layer'] === 'number') {
     control.layer = c.properties['layer'];
+  }
+
+  if (typeof c.properties['property_bag'] === 'object') {
+    control.property_bag = c.properties['property_bag'];
   }
 
   if (Array.isArray(c.properties['controls'])) {
