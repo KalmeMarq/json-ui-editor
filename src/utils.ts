@@ -193,13 +193,21 @@ export function tokenizeAreaValue(value: string) {
       cursor += 1;
     } else if ('0123456789'.includes(char)) {
       let n = '';
+      let dotCount = 0;
 
       do {
+        if (char === '.') {
+          ++dotCount;
+          if (dotCount > 1) {
+            break;
+          }
+        }
+
         n += char;
         char = value[++cursor];
-      } while ('0123456789'.includes(char) && cursor < value.length);
+      } while (('0123456789_'.includes(char) || char === '.') && cursor < value.length);
 
-      let nm = Number(n);
+      let nm = Number(n.replace(/_/g, ''));
       if (isNaN(nm)) {
         nm = 0;
       }
