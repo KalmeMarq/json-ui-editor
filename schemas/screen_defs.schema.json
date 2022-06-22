@@ -1,6 +1,26 @@
 {
   "$schema": "http://json-schema.org/schema",
   "type": "object",
+  "definitions": {
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Context data.",
+      "properties": {
+        "variables": {
+          "type": "object",
+          "description": "All the variables and bindings to be used by this context."
+        },
+        "whitelist_urls": {
+          "type": "array",
+          "description": "List of URLs allowed to be open from this context.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
   "properties": {
     "screen_definitions": {
       "type": "object",
@@ -9,6 +29,9 @@
         "default": {
           "type": "string",
           "description": "ID of the start screen."
+        },
+        "context": {
+          "$ref": "#/definitions/context"
         },
         "screens": {
           "type": "array",
@@ -31,6 +54,9 @@
                 "type": "string",
                 "minLength": 1,
                 "description": "Button ID that displays this screen."
+              },
+              "context": {
+                "$ref": "#/definitions/context"
               }
             }
           }

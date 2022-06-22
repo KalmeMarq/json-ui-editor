@@ -5,5 +5,9 @@
     "type": "fill",
     "color": "blue",
     "size": ["50%", "50%"]
+  },
+
+  "base_screen": {
+    "type": "panel"
   }
 }

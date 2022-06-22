@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "type": "object",
+  "patternProperties": {
+    "^\\$[a-zA-Z0-9_-:]+$": {
+      "type": ["array", "boolean", "integer", "null", "number", "object", "string"],
+      "description": "Global variable."
+    }
+  }
+}
