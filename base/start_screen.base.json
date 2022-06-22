@@ -14,7 +14,7 @@
     "type": "image",
     "texture": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAhCAYAAADUIPtUAAAAAklEQVR4AewaftIAAAC9SURBVK3BwXGDMBCG0W//UJGacAU6qQwaSCrQhSsVqA+2LEUZx2P7EALMvme865xj/DKe+sAZZsZgDB/c9YGzbrcb67p+Al8G9IEHd+eoWis/WmuIF+7OVSKICCKCiCAiiAgigoggIogIIoKIICKICCKCiCAiyMSOeZ55SClRSuEv4h/ubu5uy7KwRwSZ2JFSYtu2zgETO0opuDtHiCAiiLio1sor467nnLmqtYbx1HPOnNVaYzDjXec8Y/gGSPg0olRZzQgAAAAASUVORK5CYII=",
     "nineslice_size": [8, 23, 8, 8],
-    "size": [128, 120],
+    "size": "$dialog_size",
     "layer": 1,
     "controls": [
       {
@@ -49,21 +49,43 @@
 
   // the target element (as if it was the screen element). Do not delete it!
   "start_screen@common.base_screen": {
-    "$grad_dir": "horizontal",
+    "$grad_dir": "vertical",
     "anchor_from": "top_left",
     "anchor_to": "top_left",
     "controls": [
-      { "dialog@dialog": {} },
+      { "dialog@dialog": { "$dialog_size": [128, 120] } },
       {
         "filler": {
           "type": "custom",
           "renderer": "gradient_renderer",
           "gradient_direction": "$grad_dir",
-          "color1": [0, 0, 0],
-          "color2": [0, 0, 0, 0],
+          "color1": [1, 0, 0],
+          "color2": [0, 0, 1, 0.5],
           "anchor_from": "center",
           "anchor_to": "bottom_right",
           "size": [100, 200]
+        }
+      },
+      {
+        "v": {
+          "type": "custom",
+          "renderer": "vignette_renderer",
+          "ignored": true
+        }
+      },
+      {
+        "nm": {
+          "type": "custom",
+          "renderer": "name_tag_renderer",
+          "offset": [80, 0],
+          "text_color": "$b_color_format",
+          "background_color": [0.2, 0.5, 1, 0.6],
+          "layer": 20,
+          "property_bag": {
+            "#playername": "Notch",
+            "#x_padding": 10,
+            "#y_padding": 2 // exclusive
+          }
         }
       }
     ]

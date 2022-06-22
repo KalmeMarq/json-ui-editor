@@ -1,0 +1,10 @@
+{
+  "vertex": "vignette",
+  "fragment": "vignette",
+  "uniforms": [
+    { "name": "size", "type": "1f", "value": 0.5 },
+    { "name": "amount", "type": "1f", "value": 0.5 },
+    { "name": "focalPointX", "type": "1f", "value": 0.5 },
+    { "name": "focalPointY", "type": "1f", "value": 0.5 }
+  ]
+}
