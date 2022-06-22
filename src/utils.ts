@@ -328,3 +328,14 @@ export function resolveGradientDirection(value: string) {
     return 'vertical';
   }
 }
+
+export function rgbToDecimal(color: Color) {
+  return (color[0] << 16) | (color[1] << 8) | color[2];
+}
+
+export function getDurabilityColors(ratio: number): { progress_color: Color; background_color: Color } {
+  return {
+    progress_color: [255 - 255 * ratio, 255 * ratio, 0, 1.0],
+    background_color: [64 - 64 * ratio, 64, 0, 1.0]
+  };
+}

@@ -47,13 +47,162 @@
     ]
   },
 
+  "progress": {
+    "type": "panel",
+    "size": [100, 8],
+    "anchor_from": "top_left",
+    "anchor_to": "top_left",
+    "controls": [
+      {
+        "progress1": {
+          "type": "custom",
+          "renderer": "progress_bar_renderer",
+          "size": [100, 4],
+          "offset": [0, 10],
+          "property_bag": {
+            "is_durability": true,
+            "#progress_bar_current_amount": "$current",
+            "#progress_bar_total_amount": 200,
+            "#progress_bar_visible": true
+          }
+        }
+      }
+    ]
+  },
+
   // the target element (as if it was the screen element). Do not delete it!
   "start_screen@common.base_screen": {
     "$grad_dir": "vertical",
     "anchor_from": "top_left",
     "anchor_to": "top_left",
     "controls": [
-      { "dialog@dialog": { "$dialog_size": [128, 120] } },
+      {
+        "0@progress": {
+          "$current": 0
+        }
+      },
+      {
+        "0_0625@progress": {
+          "$current": 12.5,
+          "offset": [0, 8]
+        }
+      },
+      {
+        "0_125@progress": {
+          "$current": 25,
+          "offset": [0, 16]
+        }
+      },
+      {
+        "0_1875@progress": {
+          "$current": 37.5,
+          "offset": [0, 24]
+        }
+      },
+      {
+        "0_25@progress": {
+          "$current": 50,
+          "offset": [0, 32]
+        }
+      },
+      {
+        "0_3125@progress": {
+          "$current": 62.5,
+          "offset": [0, 40]
+        }
+      },
+      {
+        "0_375@progress": {
+          "$current": 75,
+          "offset": [0, 48]
+        }
+      },
+      {
+        "0_5@progress": {
+          "$current": 100,
+          "offset": [0, 56]
+        }
+      },
+      {
+        "0_625@progress": {
+          "$current": 125,
+          "offset": [0, 64]
+        }
+      },
+      {
+        "0_75@progress": {
+          "$current": 150,
+          "offset": [0, 72]
+        }
+      },
+      {
+        "0_875@progress": {
+          "$current": 175,
+          "offset": [0, 80]
+        }
+      },
+      {
+        "1@progress": {
+          "$current": 200,
+          "offset": [0, 88]
+        }
+      },
+      {
+        "progress": {
+          "type": "custom",
+          "renderer": "progress_bar_renderer",
+          "size": [100, 4],
+          "offset": [0, -10],
+          "primary_color": "red",
+          "secondary_color": "blue",
+          "property_bag": {
+            "#progress_bar_current_amount": 75,
+            "#progress_bar_total_amount": 150,
+            "#progress_bar_visible": true
+          }
+        }
+      },
+      {
+        "progress": {
+          "type": "custom",
+          "renderer": "progress_bar_renderer",
+          "size": [100, 4],
+          "property_bag": {
+            "#progress_bar_current_amount": 75,
+            "#progress_bar_total_amount": 150,
+            "#progress_bar_visible": true
+          }
+        }
+      },
+      {
+        "progress": {
+          "type": "custom",
+          "renderer": "progress_bar_renderer",
+          "size": [100, 4],
+          "offset": [0, 10],
+          "property_bag": {
+            "is_durability": true,
+            "#progress_bar_current_amount": 75,
+            "#progress_bar_total_amount": 150,
+            "#progress_bar_visible": true
+          }
+        }
+      },
+      {
+        "progress": {
+          "type": "custom",
+          "renderer": "progress_bar_renderer",
+          "size": [100, 4],
+          "offset": [0, 20],
+          "property_bag": {
+            "is_durability": true,
+            "#progress_bar_current_amount": 105,
+            "#progress_bar_total_amount": 150,
+            "#progress_bar_visible": true
+          }
+        }
+      },
+      // { "dialog@dialog": { "$dialog_size": [128, 120] } },
       {
         "filler": {
           "type": "custom",
@@ -63,16 +212,17 @@
           "color2": [0, 0, 1, 0.5],
           "anchor_from": "center",
           "anchor_to": "bottom_right",
-          "size": [100, 200]
+          "size": [100, 200],
+          "layer": -1
         }
       },
-      {
-        "v": {
-          "type": "custom",
-          "renderer": "vignette_renderer",
-          "ignored": true
-        }
-      },
+      // {
+      //   "v": {
+      //     "type": "custom",
+      //     "renderer": "vignette_renderer",
+      //     "ignored": true
+      //   }
+      // },
       {
         "nm": {
           "type": "custom",

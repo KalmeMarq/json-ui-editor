@@ -7,6 +7,9 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  text-rendering: geometricPrecision;
 }
 
 body {

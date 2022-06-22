@@ -1,8 +1,9 @@
 import { AnchorPoint, ClipDirection, Color, FontSize, GradientDirection, Tiled } from './types';
-import { clamp } from './utils';
+import { clamp, getDurabilityColors, rgbToDecimal } from './utils';
 import * as PIXI from 'pixi.js';
 import { Gradient } from './gradient';
 import { Vignette } from './vignette';
+import { UI_SCALE } from './constants';
 
 export class UIControl {
   protected _parent: UIControl | null = null;
@@ -563,7 +564,7 @@ export class UILabelControl extends UIControl {
         wordWrapWidth: this.size[0],
         fill: ((this.color[0] * 0.25) << 16) | ((this.color[1] * 0.25) << 8) | (this.color[2] * 0.25)
       });
-      txt.resolution = 2;
+      txt.resolution = window.devicePixelRatio * UI_SCALE;
       txt.position.set(1, 1);
       this._container.addChild(txt);
     }
@@ -575,7 +576,7 @@ export class UILabelControl extends UIControl {
       wordWrapWidth: this.size[0],
       fill: (this.color[0] << 16) | (this.color[1] << 8) | this.color[2]
     });
-    txt.resolution = 2;
+    txt.resolution = window.devicePixelRatio * UI_SCALE;
 
     let [x, y] = this.getAnchoredOffset(this.size[0], this.size[1], screenWidth, screenHeight);
 
@@ -723,7 +724,7 @@ export class UICustomNametagRenderer extends UICustomRenderer {
       fontSize: 8,
       fill: (control.text_color[0] << 16) | (control.text_color[1] << 8) | control.text_color[2]
     });
-    txt.resolution = 2;
+    txt.resolution = window.devicePixelRatio * UI_SCALE;
 
     const w = txt.width + 6 + xpadding;
     const h = txt.height + 4 + ypadding;
@@ -748,14 +749,55 @@ export class UICustomNametagRenderer extends UICustomRenderer {
   }
 }
 
+export class UICustomProgressBarRenderer extends UICustomRenderer {
+  getRenderable(control: UICustomControl): PIXI.DisplayObject {
+    const currentAmount = (control.property_bag['#progress_bar_current_amount'] as number) ?? 1;
+    const totalAmount = (control.property_bag['#progress_bar_total_amount'] as number) ?? 1;
+    const isVisible = (control.property_bag['#progress_bar_visible'] as boolean) ?? true;
+    const isDurability = (control.property_bag['is_durability'] as boolean) ?? false;
+
+    const ratio = clamp(currentAmount / totalAmount, 0, 1);
+
+    const cont = new PIXI.Container();
+
+    if (isDurability) {
+      const durColors = getDurabilityColors(ratio);
+
+      const gf = new PIXI.Graphics();
+      gf.beginFill(0x000000, 1.0);
+      gf.drawRect(0, 0, control.size[0] + 1, control.size[1] + 1);
+      gf.beginFill(rgbToDecimal(durColors.background_color), durColors.background_color[3]);
+      gf.drawRect(0, 0, control.size[0], control.size[1]);
+      gf.beginFill(rgbToDecimal(durColors.progress_color), durColors.progress_color[3]);
+      gf.drawRect(0, 0, control.size[0] * ratio, control.size[1]);
+      gf.endFill();
+      cont.addChild(gf);
+    } else {
+      const gf = new PIXI.Graphics();
+      gf.beginFill(rgbToDecimal(control.secondary_color), control.secondary_color[3]);
+      gf.drawRect(0, 0, control.size[0], control.size[1]);
+      gf.beginFill(rgbToDecimal(control.primary_color), control.primary_color[3]);
+      gf.drawRect(0, 0, control.size[0] * ratio, control.size[1]);
+      gf.endFill();
+      cont.addChild(gf);
+    }
+
+    cont.visible = isVisible;
+
+    return cont;
+  }
+}
+
 export class UICustomControl extends UIControl {
   _renderer: null | UICustomRenderer = null;
   _gradient_direction: GradientDirection = 'vertical';
-  _color: [number, number, number, number] = [255, 255, 255, 1.0];
-  _color1: [number, number, number, number] = [255, 255, 255, 1.0];
-  _color2: [number, number, number, number] = [255, 255, 255, 1.0];
-  _text_color: [number, number, number, number] = [255, 255, 255, 1.0];
-  _background_color: [number, number, number, number] = [50, 50, 50, 0.6];
+  _color: Color = [255, 255, 255, 1.0];
+  _color1: Color = [255, 255, 255, 1.0];
+  _color2: Color = [255, 255, 255, 1.0];
+  _text_color: Color = [255, 255, 255, 1.0];
+  _background_color: Color = [50, 50, 50, 0.6];
+  _primary_color: Color = [0, 255, 0, 1.0];
+  _secondary_color: Color = [76, 76, 76, 1];
 
   public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
     super.init(offsetX, offsetY, screenWidth, screenHeight);
@@ -798,6 +840,22 @@ export class UICustomControl extends UIControl {
 
   public get color() {
     return this._color;
+  }
+
+  public set primary_color(primary_color: Color) {
+    this._primary_color = primary_color;
+  }
+
+  public get primary_color() {
+    return this._primary_color;
+  }
+
+  public set secondary_color(secondary_color: Color) {
+    this._secondary_color = secondary_color;
+  }
+
+  public get secondary_color() {
+    return this._secondary_color;
   }
 
   public set text_color(text_color: Color) {

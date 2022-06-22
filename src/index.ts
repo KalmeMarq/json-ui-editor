@@ -89,6 +89,7 @@ monaco.languages.json.jsonDefaults.setModeConfiguration({
 const app = new PIXI.Application({
   width: 800,
   height: 600,
+  resolution: window.devicePixelRatio,
   view: document.getElementById('screen') as HTMLCanvasElement,
   resizeTo: document.getElementById('screen') as HTMLCanvasElement,
   backgroundColor: 0xffffff
@@ -438,14 +439,24 @@ function dealWithVariables(uiStuff: Record<string, Record<string, UIFileVisualTr
       });
 
       Object.entries(c.properties).forEach(([prop_nm, prop_vl]) => {
-        console.log(c.variables);
         if (typeof prop_vl === 'string' && prop_vl.startsWith('$')) {
           if (c.variables[prop_vl]) {
             c.properties[prop_nm] = c.variables[prop_vl].value;
           }
         }
+
+        if (prop_nm === 'property_bag' && typeof prop_vl === 'object' && !Array.isArray(prop_vl)) {
+          Object.entries(prop_vl).forEach(([pbag_nm, pbag_vl]) => {
+            if (typeof pbag_vl === 'string' && pbag_vl.startsWith('$')) {
+              if (c.variables[pbag_vl] !== undefined) {
+                c.properties[pbag_nm] = c.variables[pbag_vl].value;
+              }
+            }
+          });
+        }
       });
 
+      console.log(c);
       dealWithVariablesElement(c);
     });
   }
@@ -467,14 +478,24 @@ function dealWithVariablesElement(tar: UIFileVisualTreeElement) {
       });
 
       Object.entries(c.properties).forEach(([prop_nm, prop_vl]) => {
-        console.log(c.variables);
         if (typeof prop_vl === 'string' && prop_vl.startsWith('$')) {
           if (c.variables[prop_vl]) {
             c.properties[prop_nm] = c.variables[prop_vl].value;
           }
         }
+
+        if (prop_nm === 'property_bag' && typeof prop_vl === 'object' && !Array.isArray(prop_vl)) {
+          Object.entries(prop_vl).forEach(([pbag_nm, pbag_vl]) => {
+            if (typeof pbag_vl === 'string' && pbag_vl.startsWith('$')) {
+              if (c.variables[pbag_vl] !== undefined) {
+                c.properties[pbag_nm] = c.variables[pbag_vl].value;
+              }
+            }
+          });
+        }
       });
 
+      console.log(c);
       dealWithVariablesElement(c);
     });
   }

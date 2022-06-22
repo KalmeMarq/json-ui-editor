@@ -1,5 +1,17 @@
 import { UI_SCALE } from './constants';
-import { UIControl, UICustomControl, UICustomFillRenderer, UICustomGradientRenderer, UICustomNametagRenderer, UICustomVignetteRenderer, UIFillControl, UILabelControl, UIPanelControl, UISpriteControl } from './controls';
+import {
+  UIControl,
+  UICustomControl,
+  UICustomFillRenderer,
+  UICustomGradientRenderer,
+  UICustomNametagRenderer,
+  UICustomProgressBarRenderer,
+  UICustomVignetteRenderer,
+  UIFillControl,
+  UILabelControl,
+  UIPanelControl,
+  UISpriteControl
+} from './controls';
 import { UIFileVisualTreeElement } from './types';
 import { clamp, evalArea, parseColor, resolveGradientDirection } from './utils';
 
@@ -196,6 +208,14 @@ function populateCustom(parent: UIControl | null, control: UICustomControl, c: U
     control.color1 = parseColor(c.properties['color1']);
   }
 
+  if (c.properties['primary_color']) {
+    control.primary_color = parseColor(c.properties['primary_color']);
+  }
+
+  if (c.properties['secondary_color']) {
+    control.secondary_color = parseColor(c.properties['secondary_color']);
+  }
+
   if (c.properties['text_color']) {
     control.text_color = parseColor(c.properties['text_color']);
   }
@@ -225,6 +245,9 @@ function populateCustom(parent: UIControl | null, control: UICustomControl, c: U
         break;
       case 'name_tag_renderer':
         control.renderer = new UICustomNametagRenderer();
+        break;
+      case 'progress_bar_renderer':
+        control.renderer = new UICustomProgressBarRenderer();
         break;
     }
   }
