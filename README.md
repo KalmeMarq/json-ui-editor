@@ -9,3 +9,5 @@ You can drag images and json files to the explorer.
 
 
 JSON UI Editor: [https://kalmemarq.github.io/json-ui-editor/](https://kalmemarq.github.io/json-ui-editor/)
+
+[TODO List](https://github.com/KalmeMarq/json-ui-editor/blob/master/todo.md)

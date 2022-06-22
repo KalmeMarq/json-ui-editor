@@ -1,0 +1,126 @@
+## TODO
+
+### Types
+- [x] panel
+- [ ] stack_panel
+- [x] image
+- [x] label
+- [ ] custom
+  - [x] gradient_renderer
+    - [x] color1
+    - [x] color2
+    - [x] gradient_direction 
+  - [x] fill_renderer (exclusive)
+    - [x] color
+  - [ ] vignette_renderer
+  - [ ] name_tag_renderer
+  - [ ] progress_bar_renderer
+    - [ ] primary_color
+    - [ ] secondary_color
+  - [ ] cursor_renderer
+  - [ ] hover_text_renderer
+  - [ ] debug_screen_renderer (partially)
+- [ ] grid
+- [ ] screen
+- [ ] factory
+- [ ] input_panel
+- [ ] button
+- [ ] scroll_view
+- [ ] scrollbar_box
+- [ ] scrollbar_track
+- [ ] edit_box
+- [ ] toggle
+- [ ] slider
+- [ ] dropdown
+- [ ] selection_wheel
+
+### Workflow
+- [ ] variables
+  - [x] property variable
+  - [ ] element name variable
+  - [ ] element super name variable
+
+### Properties
+- [x] ignored
+- [ ] enabled
+- [ ] visible
+- [x] layer
+- [ ] alpha
+- [ ] propagate_alpha
+- [ ] clips_children
+- [ ] clip_offset
+- [ ] allow_clipping
+- [ ] enable_scissor_test
+- [ ] property_bag
+- [x] controls
+- [ ] variables
+- [x] anchor_from/anchor_to
+- [ ] offset
+  - [x] px
+  - [x] %
+  - [ ] %c
+  - [ ] %s
+  - [ ] %x
+  - [ ] %y
+  - [ ] %cm
+- [ ] size
+  - [x] px
+  - [x] %
+  - [ ] %c
+  - [ ] %s
+  - [ ] %x
+  - [ ] %y
+  - [ ] %cm
+- [ ] min_size
+- [ ] max_size
+- [ ] inherit_max_sibling_width
+- [ ] inherit_max_sibling_height
+- [ ] orientation
+- [ ] text
+   - [x] string
+   - [ ] textcomponent (e.g { translate: "chat.type", with: ["KalmeMarq"], extra: [{ text: "Hi!" }] }) (exclusive)
+- [ ] color
+    - [ ] 0-1
+    - [ ] rgb/rgba (e.g "rgb(200, 128, 20)" and "rgba(200, 128, 20, 0.2)") (exclusive)
+    - [ ] hex/ahex (e.g "#FFA7D1" and "#11FFA7D1") (exclusive)
+    - [ ] hsl/hsla (e.g "hsl(340, 50%, 50%)" and hsla(340, 50%, 50%, 0.4)") (exclusive)
+- [ ] text_alignment
+- [x] shadow
+- [ ] hide_hyphen
+- [x] font_size
+- [x] font_scale_factor
+- [ ] font_type
+  - [ ] default
+  - [ ] rune
+  - [ ] unicode
+  - [ ] smooth
+  - [ ] MinecraftTen
+  - [ ] custom fonts
+- [ ] localize
+- [ ] line_padding
+- [ ] locked_alpha
+- [ ] locked_color
+- [x] texture
+  - [x] base64
+  - [x] explorer file
+- [x] uv
+- [x] uv_size
+- [x] nineslice
+- [ ] tiled
+  - [x] true
+  - [ ] x
+  - [ ] y 
+- [ ] tiled_scale
+- [ ] clip_direction
+  - [x] left
+  - [x] right
+  - [x] up
+  - [x] down
+  - [ ] center 
+- [x] clip_ratio
+- [x] keep_ratio
+- [ ] fill
+- [x] grayscale
+- [ ] base_size (also make uv/uv_size based on this)
+
+add more to the list later
