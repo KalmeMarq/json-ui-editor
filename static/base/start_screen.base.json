@@ -59,11 +59,17 @@
           "type": "custom",
           "renderer": "gradient_renderer",
           "gradient_direction": "$grad_dir",
-          "color1": [0, 0, 0],
-          "color2": [0, 0, 0, 0],
+          "color1": [1, 0, 0],
+          "color2": [0, 0, 1, 0.5],
           "anchor_from": "center",
           "anchor_to": "bottom_right",
           "size": [100, 200]
+        }
+      },
+      {
+        "v": {
+          "type": "custom",
+          "renderer": "vignette_renderer"
         }
       }
     ]

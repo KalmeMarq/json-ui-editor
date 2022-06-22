@@ -1,6 +1,7 @@
 import { AnchorPoint, ClipDirection, Color, FontSize, GradientDirection, Tiled } from './types';
 import { clamp } from './utils';
 import * as PIXI from 'pixi.js';
+import { Gradient } from './gradient';
 
 export class UIControl {
   protected _parent: UIControl | null = null;
@@ -680,29 +681,48 @@ export class UICustomFillRenderer extends UICustomRenderer {
 }
 
 export class UICustomGradientRenderer extends UICustomRenderer {
-  private gradient(width: number, height: number, from: Color, to: Color, direction: GradientDirection) {
-    const c = document.createElement('canvas');
-    c.width = width;
-    c.height = height;
-    const ct = c.getContext('2d') as CanvasRenderingContext2D;
-    const grd = direction === 'horizontal' ? ct.createLinearGradient(0, 0, width, 0) : ct.createLinearGradient(0, 0, 0, height);
-    grd.addColorStop(0, `rgba(${from[0]},${from[1]},${from[2]},${from[3]})`);
-    grd.addColorStop(1, `rgba(${to[0]},${to[1]},${to[2]},${to[3]})`);
-    ct.fillStyle = grd;
-    ct.fillRect(0, 0, width, height);
-    return PIXI.Texture.from(c);
-  }
-
   getRenderable(control: UICustomControl): PIXI.DisplayObject {
-    const gf = new PIXI.Graphics();
-    gf.width = control.size[0];
-    gf.height = control.size[1];
-    gf.beginTextureFill({
-      texture: this.gradient(control.size[0], control.size[1], control.color1, control.color2, control.gradient_direction)
-    });
-    gf.drawRect(0, 0, control.size[0], control.size[1]);
-    gf.endFill();
-    return gf;
+    const grad = new Gradient(
+      control.size[0],
+      control.size[1],
+      control.gradient_direction === 'vertical' ? [control.color1, control.color2, control.color1, control.color2] : [control.color1, control.color1, control.color2, control.color2]
+    );
+    return grad;
+  }
+}
+
+export class UICustomVignetteRenderer extends UICustomRenderer {
+  getRenderable(control: UICustomControl): PIXI.DisplayObject {
+    const vig = new PIXI.Container();
+
+    // vig.width = control.size[0];
+    // vig.height = control.size[1];
+
+    // // const gf = new PIXI.Graphics();
+    // // gf.beginFill(0xff0000, 0.0);
+    // // gf.drawRect(0, 0, control.size[0], control.size[1]);
+    // // gf.endFill();
+
+    // // vig.addChild(gf);
+
+    // const crt = new CRTFilter();
+    // crt.vignetting = 0.25;
+    // crt.vignettingAlpha = 0.5;
+    // crt.vignettingBlur = 0.5;
+    // crt.lineContrast = 0;
+    // crt.lineWidth = 0;
+    // crt.verticalLine = false;
+
+    // vig.filters = [
+    //   new VignetteFilter({
+    //     size: 1,
+    //     amount: 0.5,
+    //     focalPointX: 0.5,
+    //     focalPointY: 0.5
+    //   })
+    // ];
+
+    return vig;
   }
 }
 

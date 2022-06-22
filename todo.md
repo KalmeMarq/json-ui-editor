@@ -52,6 +52,9 @@
 - [ ] allow_clipping
 - [ ] enable_scissor_test
 - [ ] property_bag
+  - [ ] opacity_override
+  - [ ] vignette_blur_override (exclusive)
+  - [ ] vignette_amount_override (exclusive)
 - [x] controls
 - [ ] variables
 - [x] anchor_from/anchor_to

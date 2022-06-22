@@ -1,5 +1,5 @@
 import { UI_SCALE } from './constants';
-import { UIControl, UICustomControl, UICustomFillRenderer, UICustomGradientRenderer, UIFillControl, UILabelControl, UIPanelControl, UISpriteControl } from './controls';
+import { UIControl, UICustomControl, UICustomFillRenderer, UICustomGradientRenderer, UICustomVignetteRenderer, UIFillControl, UILabelControl, UIPanelControl, UISpriteControl } from './controls';
 import { UIFileVisualTreeElement } from './types';
 import { clamp, evalArea, parseColor, resolveGradientDirection } from './utils';
 
@@ -211,6 +211,9 @@ function populateCustom(parent: UIControl | null, control: UICustomControl, c: U
         break;
       case 'gradient_renderer':
         control.renderer = new UICustomGradientRenderer();
+        break;
+      case 'vignette_renderer':
+        control.renderer = new UICustomVignetteRenderer();
         break;
     }
   }
