@@ -1,4 +1,4 @@
-# JSON UI Editor (Not in development anymore. I got bored of it)
+# JSON UI Editor (Will be back in development soon)
 A simple test editor for minecraft bugrock json ui to do simple tests. 
 
 
