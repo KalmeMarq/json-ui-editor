@@ -1,7 +1,50 @@
-@font-face {
-  font-family: 'Minecraft';
-  src: url("./font/Minecraftia.ttf");
+ 
+#fps {
+  position: absolute;
+  bottom: 14px;
+  left: 70px;
+  font-size: 1.5rem;
+  color: white;
+  font-family: 'Fira Code';
+  z-index: 100;
+  display: block;
 }
+/*
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  width: 100vw;
+  overflow: hidden;
+}
+
+#ui-files {
+  -webkit-user-drag: element;
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  background: #131313;
+}
+
+#ui-files details {
+  color: white;
+}
+
+#ui-files summary {
+  color: white;
+  user-select: none;
+}
+
+#ui-files details > div {
+  resize: both;
+  overflow: auto;
+} */
 
 * {
   margin: 0;
@@ -30,6 +73,7 @@ body {
   display: flex;
   flex-direction: row;
   width: 55%;
+  min-width: 100px;
   height: 100vh;
 }
 
@@ -40,12 +84,12 @@ body {
 }
 
 #editor {
-  width: 75%;
+  width: 100%;
   height: 100vh;
 }
 
 #image-previewer {
-  width: 75%;
+  width: 100%;
   height: 100vh;
   display: none;
   place-content: center;
@@ -54,12 +98,13 @@ body {
 
 #image-previewer img {
   max-width: 90%;
+  width: 100%;
 }
 
 .display {
   display: flex;
   flex-direction: column;
-  width: 45%;
+  width: 50%;
   height: 100vh;
 }
 

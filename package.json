@@ -1,23 +1,21 @@
 {
-  "name": "json-ui-editor",
+  "name": "ztest_aa",
   "private": true,
+  "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "preview": "vite preview",
     "build": "tsc && vite build",
+    "preview": "vite preview",
     "deploy": "gh-pages -r git@github.com:KalmeMarq/json-ui-editor.git -d dist"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
-    "gh-pages": "^4.0.0",
-    "vite": "^2.9.9",
-    "vite-plugin-monaco-editor": "^1.0.10"
+    "gh-pages": "^5.0.0",
+    "typescript": "^5.0.2",
+    "vite": "^4.3.2",
+    "vite-plugin-monaco-editor": "^1.1.0"
   },
   "dependencies": {
-    "monaco-editor": "^0.33.0",
-    "pixi.js": "^6.4.2",
-    "strip-json-comments": "^4.0.0"
+    "monaco-editor": "^0.37.1",
+    "strip-json-comments": "^5.0.0"
   }
 }

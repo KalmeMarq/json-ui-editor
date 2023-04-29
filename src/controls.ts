@@ -1,1130 +1,563 @@
-import { AnchorPoint, ClipDirection, Color, FontSize, GradientDirection, Tiled } from './types';
-import { clamp, getDurabilityColors, rgbToDecimal } from './utils';
-import * as PIXI from 'pixi.js';
-import { Gradient } from './gradient';
-import { Vignette } from './vignette';
-import { UI_SCALE } from './constants';
+import { DrawContext } from './DrawContext';
+import { RenderSystem } from './gl';
+import { DEBUG } from './vars';
 
-export class UIControl {
-  protected _parent: UIControl | null = null;
-  protected _container = new PIXI.Container();
-  private _size: [number, number] = [-1, -1];
-  private _offset: [number, number] = [0, 0];
-  private _layer: number = 0;
-  private _alpha: number = 0;
-  private _anchor_from: AnchorPoint = 'center';
-  private _anchor_to: AnchorPoint = 'center';
-  private _visible: boolean = true;
-  protected _children: UIControl[] = [];
-  private _property_bag: Record<string, unknown> = {};
+const DEBUG_COLOR = [1, 0, 0, 1];
 
-  public init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number) {
-    this.onVisibilityChanged(this.visible);
-  }
+export abstract class CustomRenderer {
+  abstract render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number): void;
+}
 
-  public onVisibilityChanged(visible: boolean) {
-    this._container.visible = visible && !this.visible ? false : visible;
-
-    for (let i = 0; i < this._children.length; i++) {
-      this._children[i].onVisibilityChanged(visible);
-    }
-  }
-
-  public getRenderableContainer() {
-    return this._container;
-  }
-
-  public set parent(parent: UIControl | null) {
-    this._parent = parent;
-  }
-
-  public get parent() {
-    return this._parent;
-  }
-
-  public set property_bag(property_bag: Record<string, unknown>) {
-    this._property_bag = property_bag;
-  }
-
-  public get property_bag() {
-    return this._property_bag;
-  }
-
-  public set size(size: [number, number]) {
-    this._size = size;
-  }
-
-  public get size() {
-    return this._size;
-  }
-
-  public set offset(offset: [number, number]) {
-    this._offset = offset;
-  }
-
-  public get offset() {
-    return this._offset;
-  }
-
-  public set layer(layer: number) {
-    this._layer = layer;
-  }
-
-  public get layer() {
-    return this._layer;
-  }
-
-  public set alpha(alpha: number) {
-    this._alpha = clamp(alpha, 0, 1);
-  }
-
-  public get alpha() {
-    return this._alpha;
-  }
-
-  public set visible(visible: boolean) {
-    this._visible = visible;
-    this._container.visible = visible;
-  }
-
-  public get visible() {
-    return this._visible;
-  }
-
-  public set anchor_from(anchor_from: AnchorPoint) {
-    this._anchor_from = anchor_from;
-  }
-
-  public get anchor_from() {
-    return this._anchor_from;
-  }
-
-  public set anchor_to(anchor_to: AnchorPoint) {
-    this._anchor_to = anchor_to;
-  }
-
-  public get anchor_to() {
-    return this._anchor_to;
-  }
-
-  public addChild(control: UIControl) {
-    this._children.push(control);
-  }
-
-  public getChildren() {
-    const c: UIControl[] = [this];
-
-    for (let i = 0; i < this._children.length; i++) {
-      c.push(...this._children[i].getChildren());
-    }
-
-    return c;
-  }
-
-  protected getAnchoredOffset(width: number, height: number, screenWidth: number, screenHeight: number) {
-    let x = 0;
-    let y = 0;
-
-    switch (this.anchor_from) {
-      case 'top_left':
-        switch (this.anchor_to) {
-          case 'bottom_left':
-            y -= height;
-            break;
-          case 'bottom_middle':
-            x -= width / 4;
-            y -= height;
-            break;
-          case 'bottom_right':
-            x -= width;
-            y -= height;
-            break;
-          case 'left_middle':
-            y -= height / 2;
-            break;
-          case 'right_middle':
-            x -= width;
-            y -= height / 4;
-            break;
-          case 'center':
-            x -= width / 2;
-            y -= height / 2;
-            break;
-          case 'top_middle':
-            x -= width / 4;
-            y -= height / 2;
-            break;
-          case 'top_right':
-            x -= width;
-            y -= height / 2;
-            break;
-        }
-        break;
-      case 'bottom_left':
-        if (this.parent) {
-          y = this.parent.size[1];
-          y -= height;
-        } else {
-          y = screenHeight;
-          y -= height;
-        }
-
-        switch (this.anchor_to) {
-          case 'top_left':
-            y += height;
-            break;
-          case 'top_middle':
-            x -= width / 2;
-            y += height;
-            break;
-          case 'top_right':
-            x -= width;
-            y += height;
-            break;
-          case 'left_middle':
-            y += height / 2;
-            break;
-          case 'center':
-            x -= width / 2;
-            y += height / 2;
-            break;
-          case 'right_middle':
-            x -= width;
-            y += height / 2;
-            break;
-          case 'bottom_middle':
-            x -= width / 2;
-            break;
-          case 'bottom_right':
-            x -= width;
-            break;
-        }
-        break;
-      case 'bottom_middle':
-        if (this.parent) {
-          x = this.parent.size[0] / 2;
-          x -= width / 2;
-          y = this.parent.size[1];
-          y -= height;
-        } else {
-          x = screenWidth / 2;
-          x -= width / 2;
-          y = screenHeight;
-          y -= height;
-        }
-
-        switch (this.anchor_to) {
-          case 'top_left':
-            x += width / 2;
-            y += height;
-            break;
-          case 'top_middle':
-            y += height;
-            break;
-          case 'top_right':
-            x -= width / 2;
-            y += height;
-            break;
-          case 'left_middle':
-            x += width / 2;
-            y += height / 2;
-            break;
-          case 'center':
-            y += height / 2;
-            break;
-          case 'right_middle':
-            x -= width / 2;
-            y += height / 2;
-            break;
-          case 'bottom_left':
-            x += width / 2;
-            break;
-          case 'bottom_right':
-            x -= width / 2;
-            break;
-        }
-        break;
-      case 'bottom_right':
-        if (this.parent) {
-          x = this.parent.size[0];
-          x -= width;
-          y = this.parent.size[1];
-          y -= height;
-        } else {
-          x = screenWidth;
-          x -= width;
-          y = screenHeight;
-          y -= height;
-        }
-
-        switch (this.anchor_to) {
-          case 'top_left':
-            x += width;
-            y += height;
-            break;
-          case 'top_middle':
-            x += width / 2;
-            y += height;
-            break;
-          case 'top_right':
-            y += height;
-            break;
-          case 'left_middle':
-            x += width;
-            y += height / 2;
-            break;
-          case 'center':
-            x += width / 2;
-            y += height / 2;
-            break;
-          case 'right_middle':
-            y += height / 2;
-            break;
-          case 'bottom_left':
-            x += width;
-            break;
-          case 'bottom_middle':
-            x += width / 2;
-            break;
-        }
-        break;
-      case 'top_middle':
-        if (this.parent) {
-          x = this.parent.size[0] / 2;
-          x -= width / 2;
-        } else {
-          x = screenWidth / 2;
-          x -= width / 2;
-        }
-
-        switch (this.anchor_to) {
-          case 'top_left':
-            x += width / 2;
-            break;
-          case 'top_right':
-            x -= width / 2;
-            break;
-          case 'left_middle':
-            x += width / 2;
-            y -= height / 2;
-            break;
-          case 'right_middle':
-            x -= width / 2;
-            y -= height / 2;
-            break;
-          case 'center':
-            y -= height / 2;
-            break;
-          case 'bottom_left':
-            x += width / 2;
-            y -= height;
-            break;
-          case 'bottom_middle':
-            y -= height;
-            break;
-          case 'bottom_right':
-            x -= width / 2;
-            y -= height;
-            break;
-        }
-        break;
-      case 'top_right':
-        if (this.parent) {
-          x = this.parent.size[0];
-          x -= width;
-        } else {
-          x = screenWidth;
-          x -= width;
-        }
-
-        switch (this.anchor_to) {
-          case 'top_left':
-            x += width;
-            break;
-          case 'top_middle':
-            x += width / 2;
-            break;
-          case 'left_middle':
-            x += width;
-            y -= height / 2;
-            break;
-          case 'right_middle':
-            y -= height / 2;
-            break;
-          case 'center':
-            x += width / 2;
-            y -= height / 2;
-            break;
-          case 'bottom_left':
-            x += width;
-            y -= height;
-            break;
-          case 'bottom_right':
-            y -= height;
-            break;
-          case 'bottom_middle':
-            x += width / 2;
-            y -= height;
-            break;
-        }
-        break;
-      case 'left_middle':
-        if (this.parent) {
-          y = this.parent.size[1] / 2;
-          y -= height / 2;
-        } else {
-          y = screenHeight / 2;
-          y -= height / 2;
-        }
-
-        switch (this.anchor_to) {
-          case 'top_left':
-            y += height / 2;
-            break;
-          case 'top_middle':
-            x -= width / 2;
-            y += height / 2;
-            break;
-          case 'top_right':
-            x -= width;
-            y += height / 2;
-            break;
-          case 'center':
-            x -= width / 2;
-            break;
-          case 'right_middle':
-            x -= width;
-            break;
-          case 'bottom_left':
-            y -= height / 2;
-            break;
-          case 'bottom_right':
-            x -= width;
-            y -= height / 2;
-            break;
-          case 'bottom_middle':
-            x -= width / 2;
-            y -= height / 2;
-            break;
-        }
-        break;
-      case 'right_middle':
-        if (this.parent) {
-          x = this.parent.size[0];
-          x -= width;
-          y = this.parent.size[1] / 2;
-          y -= height / 2;
-        } else {
-          x = screenWidth;
-          x -= width;
-          y = screenHeight / 2;
-          y -= height / 2;
-        }
-
-        switch (this.anchor_to) {
-          case 'top_left':
-            x += width;
-            y += height / 2;
-            break;
-          case 'top_middle':
-            x += width / 2;
-            y += height / 2;
-            break;
-          case 'top_right':
-            y += height / 2;
-            break;
-          case 'left_middle':
-            x += width;
-            break;
-          case 'center':
-            x += width / 2;
-            break;
-          case 'bottom_left':
-            x += width;
-            y -= height / 2;
-            break;
-          case 'bottom_middle':
-            x += width / 2;
-            y -= height / 2;
-            break;
-          case 'bottom_right':
-            y -= height / 2;
-            break;
-        }
-        break;
-      case 'center':
-        if (this.parent) {
-          x = this.parent.size[0] / 2;
-          x -= width / 2;
-          y = this.parent.size[1] / 2;
-          y -= height / 2;
-        } else {
-          x = screenWidth / 2;
-          x -= width / 2;
-          y = screenHeight / 2;
-          y -= height / 2;
-        }
-
-        switch (this.anchor_to) {
-          case 'top_left':
-            x += width / 2;
-            y += height / 2;
-            break;
-          case 'top_middle':
-            y += height / 2;
-            break;
-          case 'top_right':
-            x -= width / 2;
-            y += height / 2;
-            break;
-          case 'left_middle':
-            x += width / 2;
-            break;
-          case 'right_middle':
-            x -= width / 2;
-            break;
-          case 'bottom_left':
-            x += width / 2;
-            y -= height / 2;
-            break;
-          case 'bottom_middle':
-            y -= height / 2;
-            break;
-          case 'bottom_right':
-            x -= width / 2;
-            y -= height / 2;
-            break;
-        }
-        break;
-    }
-
-    return [x, y];
+export class DebugCustomRenderer extends CustomRenderer {
+  override render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number) {
+    context.textRend.drawWithShadowfv('Debug', 0, 0, [1, 1, 1, 1]);
   }
 }
 
-export class UIPanelControl extends UIControl {
-  public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
-    super.init(offsetX, offsetY, screenWidth, screenHeight);
-
-    let zIndex = this.layer;
-    if (this.parent) {
-      zIndex += this.parent.layer;
-    }
-
-    let [x, y] = this.getAnchoredOffset(this.size[0], this.size[1], screenWidth, screenHeight);
-
-    x += this.offset[0] + offsetX;
-    y += this.offset[1] + offsetY;
-
-    this._container.position.set(x, y);
-    this._container.zIndex = zIndex;
-
-    for (let i = 0; i < this._children.length; i++) {
-      this._children[i].init(x - offsetX, y - offsetY, screenWidth, screenHeight);
+export class NametagCustomRenderer extends CustomRenderer {
+  override render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number) {
+    if (control.propertyBag['#playername'] != null) {
+      context.textRend.drawWithShadowfv(control.propertyBag['#playername'].currentValue, control.x, control.y, control.textColor);
     }
   }
 }
 
-export class UILabelControl extends UIControl {
-  private _text: string = '';
-  private _color: [number, number, number, number] = [255, 255, 255, 1.0];
-  private _shadow: boolean = false;
-  private _font_size: FontSize = 'normal';
-  private _font_scale_factor = 1.0;
+export class ProgBarCustomRenderer extends CustomRenderer {
+  override render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number) {}
+}
 
-  public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
-    super.init(offsetX, offsetY, screenWidth, screenHeight);
-
-    let zIndex = this.layer;
-    if (this.parent) {
-      zIndex += this.parent.layer;
-    }
-
-    let scaleFactor = 1.0;
-
-    if (this.font_size !== 'normal') {
-      if (this.font_size === 'small') {
-        scaleFactor = 0.5;
-      } else if (this.font_size === 'large') {
-        scaleFactor = 2;
-      } else if (this.font_size === 'extra_large') {
-        scaleFactor = 4;
-      }
-    }
-
-    if (this.font_scale_factor !== 1) {
-      scaleFactor = this.font_scale_factor;
-    }
-
-    if (this.shadow) {
-      const txt = new PIXI.Text(this.text, {
-        fontFamily: 'Minecraft',
-        fontSize: 8,
-        wordWrap: true,
-        wordWrapWidth: this.size[0],
-        fill: ((this.color[0] * 0.25) << 16) | ((this.color[1] * 0.25) << 8) | (this.color[2] * 0.25)
-      });
-      txt.resolution = window.devicePixelRatio * UI_SCALE;
-      txt.position.set(1, 1);
-      this._container.addChild(txt);
-    }
-
-    const txt = new PIXI.Text(this.text, {
-      fontFamily: 'Minecraft',
-      fontSize: 8,
-      wordWrap: true,
-      wordWrapWidth: this.size[0],
-      fill: (this.color[0] << 16) | (this.color[1] << 8) | this.color[2]
-    });
-    txt.resolution = window.devicePixelRatio * UI_SCALE;
-
-    let [x, y] = this.getAnchoredOffset(this.size[0], this.size[1], screenWidth, screenHeight);
-
-    x += this.offset[0] + offsetX;
-    y += this.offset[1] + offsetY;
-
-    this._container.addChild(txt);
-
-    this._container.position.set(x, y);
-    this._container.zIndex = zIndex;
-
-    for (let i = 0; i < this._children.length; i++) {
-      this._children[i].init(x - offsetX, y - offsetY, screenWidth, screenHeight);
-    }
-  }
-
-  public set text(text: string) {
-    this._text = text;
-  }
-
-  public get text() {
-    return this._text;
-  }
-
-  public set color(color: [number, number, number, number]) {
-    this._color = color;
-  }
-
-  public get color() {
-    return this._color;
-  }
-
-  public set shadow(shadow: boolean) {
-    this._shadow = shadow;
-  }
-
-  public get shadow() {
-    return this._shadow;
-  }
-
-  public set font_size(font_size: FontSize) {
-    this._font_size = font_size;
-  }
-
-  public get font_size() {
-    return this._font_size;
-  }
-
-  public set font_scale_factor(font_scale_factor: number) {
-    this._font_scale_factor = clamp(font_scale_factor, 0, Infinity);
-  }
-
-  public get font_scale_factor() {
-    return this._font_scale_factor;
+export class FillCustomRenderer extends CustomRenderer {
+  override render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number) {
+    context.drawColoredfv(control.x, control.y, 0, control.w, control.h, control.color);
   }
 }
 
-export class UIFillControl extends UIControl {
-  private _color: [number, number, number, number] = [255, 255, 255, 1.0];
-
-  public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
-    super.init(offsetX, offsetY, screenWidth, screenHeight);
-    const gf = new PIXI.Graphics();
-    const color = (this._color[0] << 16) | (this._color[1] << 8) | (this._color[2] << 0);
-
-    let [x, y] = this.getAnchoredOffset(this.size[0], this.size[1], screenWidth, screenHeight);
-
-    x += this.offset[0] + offsetX;
-    y += this.offset[1] + offsetY;
-
-    let zIndex = this.layer;
-    if (this.parent) {
-      zIndex += this.parent.layer;
-    }
-
-    gf.beginFill(color, this._color[3]);
-    gf.drawRect(0, 0, this.size[0], this.size[1]);
-    gf.endFill();
-
-    this._container.addChild(gf);
-    this._container.position.set(x, y);
-    this._container.zIndex = zIndex;
-
-    for (let i = 0; i < this._children.length; i++) {
-      this._children[i].init(x - offsetX, y - offsetY, screenWidth, screenHeight);
-    }
-  }
-
-  public set color(color: [number, number, number, number]) {
-    this._color = color;
-  }
-
-  public get color() {
-    return this._color;
-  }
-}
-
-export abstract class UICustomRenderer {
-  abstract getRenderable(control: UICustomControl): PIXI.DisplayObject;
-}
-
-export class UICustomFillRenderer extends UICustomRenderer {
-  override getRenderable(control: UICustomControl): PIXI.Graphics {
-    const gf = new PIXI.Graphics();
-    const color = (control.color[0] << 16) | (control.color[1] << 8) | (control.color[2] << 0);
-
-    gf.beginFill(color, control.color[3]);
-    gf.drawRect(0, 0, control.size[0], control.size[1]);
-    gf.endFill();
-
-    return gf;
-  }
-}
-
-export class UICustomGradientRenderer extends UICustomRenderer {
-  getRenderable(control: UICustomControl): PIXI.DisplayObject {
-    const grad = new Gradient(
-      control.size[0],
-      control.size[1],
-      control.gradient_direction === 'vertical' ? [control.color1, control.color2, control.color1, control.color2] : [control.color1, control.color1, control.color2, control.color2]
-    );
-    return grad;
-  }
-}
-
-export class UICustomVignetteRenderer extends UICustomRenderer {
-  getRenderable(control: UICustomControl): PIXI.DisplayObject {
-    const vig = new Vignette(
-      control.size[0],
-      control.size[1]
-      // control.gradient_direction === 'vertical' ? [control.color1, control.color2, control.color1, control.color2] : [control.color1, control.color1, control.color2, control.color2]
-    );
-    return vig;
-  }
-}
-
-export class UICustomNametagRenderer extends UICustomRenderer {
-  public override getRenderable(control: UICustomControl): PIXI.Container {
-    let playername = (control.property_bag['#playername'] as string) ?? 'Steve';
-    let xpadding = (control.property_bag['#x_padding'] as number) ?? 0;
-    let ypadding = (control.property_bag['#y_padding'] as number) ?? 0;
-
-    const txt = new PIXI.Text(playername, {
-      fontFamily: 'Minecraft',
-      fontSize: 8,
-      fill: (control.text_color[0] << 16) | (control.text_color[1] << 8) | control.text_color[2]
-    });
-    txt.resolution = window.devicePixelRatio * UI_SCALE;
-
-    const w = txt.width + 6 + xpadding;
-    const h = txt.height + 4 + ypadding;
-
-    const gf = new PIXI.Graphics();
-    gf.beginFill((control.background_color[0] << 16) | (control.background_color[1] << 8) | control.background_color[2], control.background_color[3]);
-    gf.drawRect(0, 0, w, h);
-    gf.endFill();
-
-    const cont = new PIXI.Container();
-    cont.width = w;
-    cont.height = h;
-
-    txt.position.set(3 + xpadding / 2, 2 + ypadding / 2);
-
-    cont.addChild(gf);
-    cont.addChild(txt);
-
-    control.size = [w, h];
-
-    return cont;
-  }
-}
-
-export class UICustomProgressBarRenderer extends UICustomRenderer {
-  getRenderable(control: UICustomControl): PIXI.DisplayObject {
-    const currentAmount = (control.property_bag['#progress_bar_current_amount'] as number) ?? 1;
-    const totalAmount = (control.property_bag['#progress_bar_total_amount'] as number) ?? 1;
-    const isVisible = (control.property_bag['#progress_bar_visible'] as boolean) ?? true;
-    const isDurability = (control.property_bag['is_durability'] as boolean) ?? false;
-
-    const ratio = clamp(currentAmount / totalAmount, 0, 1);
-
-    const cont = new PIXI.Container();
-
-    if (isDurability) {
-      const durColors = getDurabilityColors(ratio);
-
-      const gf = new PIXI.Graphics();
-      gf.beginFill(0x000000, 1.0);
-      gf.drawRect(0, 0, control.size[0] + 1, control.size[1] + 1);
-      gf.beginFill(rgbToDecimal(durColors.background_color), durColors.background_color[3]);
-      gf.drawRect(0, 0, control.size[0], control.size[1]);
-      gf.beginFill(rgbToDecimal(durColors.progress_color), durColors.progress_color[3]);
-      gf.drawRect(0, 0, control.size[0] * ratio, control.size[1]);
-      gf.endFill();
-      cont.addChild(gf);
+export class GradientCustomRenderer extends CustomRenderer {
+  override render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number) {
+    if (control.gradientDir == 'vertical') {
+      context.drawVGradientfv(control.x, control.y, 0, control.w, control.h, control.color0, control.color1);
     } else {
-      const gf = new PIXI.Graphics();
-      gf.beginFill(rgbToDecimal(control.secondary_color), control.secondary_color[3]);
-      gf.drawRect(0, 0, control.size[0], control.size[1]);
-      gf.beginFill(rgbToDecimal(control.primary_color), control.primary_color[3]);
-      gf.drawRect(0, 0, control.size[0] * ratio, control.size[1]);
-      gf.endFill();
-      cont.addChild(gf);
+      context.drawHGradientfv(control.x, control.y, 0, control.w, control.h, control.color0, control.color1);
     }
-
-    cont.visible = isVisible;
-
-    return cont;
   }
 }
 
-export class UICustomControl extends UIControl {
-  _renderer: null | UICustomRenderer = null;
-  _gradient_direction: GradientDirection = 'vertical';
-  _color: Color = [255, 255, 255, 1.0];
-  _color1: Color = [255, 255, 255, 1.0];
-  _color2: Color = [255, 255, 255, 1.0];
-  _text_color: Color = [255, 255, 255, 1.0];
-  _background_color: Color = [50, 50, 50, 0.6];
-  _primary_color: Color = [0, 255, 0, 1.0];
-  _secondary_color: Color = [76, 76, 76, 1];
+export abstract class Control {
+  parent?: Control;
+  path = '';
+  x = 0;
+  y = 0;
+  w = 0;
+  h = 0;
+  propertyBag: Record<string, BindingObserver> = {};
+  children: Control[] = [];
+  visible = true;
+  debug?: number[];
 
-  public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
-    super.init(offsetX, offsetY, screenWidth, screenHeight);
-    this._container.removeChildren();
+  abstract render(context: DrawContext, mouseX: number, mouseY: number): void;
 
-    let zIndex = this.layer;
-    if (this.parent) {
-      zIndex += this.parent.layer;
-    }
-
-    if (this.renderer !== null) {
-      const c = this.renderer.getRenderable(this);
-      this._container.addChild(c);
-    }
-
-    let [x, y] = this.getAnchoredOffset(this.size[0], this.size[1], screenWidth, screenHeight);
-
-    x += this.offset[0] + offsetX;
-    y += this.offset[1] + offsetY;
-
-    this._container.position.set(x, y);
-    this._container.zIndex = zIndex;
-
-    for (let i = 0; i < this._children.length; i++) {
-      this._children[i].init(x - offsetX, y - offsetY, screenWidth, screenHeight);
-    }
-  }
-
-  public set renderer(renderer: UICustomRenderer | null) {
-    this._renderer = renderer;
-  }
-
-  public get renderer() {
-    return this._renderer;
-  }
-
-  public set color(color: Color) {
-    this._color = color;
-  }
-
-  public get color() {
-    return this._color;
-  }
-
-  public set primary_color(primary_color: Color) {
-    this._primary_color = primary_color;
-  }
-
-  public get primary_color() {
-    return this._primary_color;
-  }
-
-  public set secondary_color(secondary_color: Color) {
-    this._secondary_color = secondary_color;
-  }
-
-  public get secondary_color() {
-    return this._secondary_color;
-  }
-
-  public set text_color(text_color: Color) {
-    this._text_color = text_color;
-  }
-
-  public get text_color() {
-    return this._text_color;
-  }
-
-  public set background_color(background_color: Color) {
-    this._background_color = background_color;
-  }
-
-  public get background_color() {
-    return this._background_color;
-  }
-
-  public set color1(color1: Color) {
-    this._color1 = color1;
-  }
-
-  public get color1() {
-    return this._color1;
-  }
-
-  public set color2(color2: Color) {
-    this._color2 = color2;
-  }
-
-  public get color2() {
-    return this._color2;
-  }
-
-  public set gradient_direction(gradient_direction: GradientDirection) {
-    this._gradient_direction = gradient_direction;
-  }
-
-  public get gradient_direction() {
-    return this._gradient_direction;
+  getPropertyBagProperty(name: string) {
+    return this.propertyBag[name];
   }
 }
 
-export class UISpriteControl extends UIControl {
-  public static cacheTxr: Record<string, PIXI.Texture> = {};
-  private _texture = '';
-  private _nineslice_size: [number, number, number, number] | null = null;
-  private _color: Color = [255, 255, 255, 1.0];
-  private _uv: [number, number] = [0, 0];
-  private _uv_size: [number, number] = [-1, -1];
-  private _base_size: [number, number] = [-1, -1];
-  private _grayscale = false;
-  private _keep_ratio = false;
-  private _tiled: Tiled = false;
-  private _tiled_scale: [number, number] = [1, 1];
-  private _clip_ratio = 1.0;
-  private _clip_direction: ClipDirection = 'left';
+export class ButtonControl extends Control {
+  defaultControl = 'default';
+  hoverControl = 'hover';
+  lockedControl = 'locked';
 
-  public override init(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number): void {
-    if (this.texture === '') return;
+  private dirty = true;
 
-    if (this.texture.startsWith('data:image/') && UISpriteControl.cacheTxr[this.texture] === undefined) {
-      const img = new Image();
-      img.src = this.texture;
-      const base = new PIXI.BaseTexture(img);
-      const texture = new PIXI.Texture(base);
-      img.onload = () => {
-        UISpriteControl.cacheTxr[this.texture] = texture;
-        this.initImage(offsetX, offsetY, screenWidth, screenHeight);
-      };
+  private hovered = false;
+  private enabled = true;
+
+  public render(context: DrawContext, mouseX: number, mouseY: number): void {
+    if (!this.visible) return;
+
+    this.hovered = mouseX >= this.x && mouseX < this.x + this.w && mouseY >= this.y && mouseY < this.y + this.h;
+
+    if (this.dirty) {
+      this.dirty = false;
+
+      for (let i = 0; i < this.children.length; ++i) {
+        const control = this.children[i];
+        control.x += this.x;
+        control.y += this.y;
+      }
+    }
+
+    for (let i = 0; i < this.children.length; ++i) {
+      const control = this.children[i];
+
+      if (control.path.endsWith('/' + this.defaultControl)) {
+        control.visible = this.enabled && !this.hovered;
+      } else if (control.path.endsWith('/' + this.hoverControl)) {
+        control.visible = this.enabled && this.hovered;
+      } else if (control.path.endsWith('/' + this.lockedControl)) {
+        control.visible = !this.enabled;
+      }
+
+      control.render(context, mouseX, mouseY);
+    }
+
+    if (DEBUG) {
+      context.drawBorder(this.x, this.y, 0, this.w, this.h, 1, 0, 0, 1);
+    } else if (this.debug != null) {
+      context.drawBorder(this.x, this.y, 0, this.w, this.h, this.debug[0], this.debug[1], this.debug[2], this.debug[3]);
+    }
+  }
+}
+
+export class ScreenControl extends Control {
+  renderOnlyWhenTopMost = true;
+  forceRenderBelow = false;
+
+  public render(context: DrawContext, mouseX: number, mouseY: number): void {
+    if (!this.visible) return;
+
+    for (let i = 0; i < this.children.length; ++i) {
+      this.children[i].render(context, mouseX, mouseY);
+    }
+  }
+}
+
+export class StackPanelControl extends Control {
+  orientation: 'vertical' | 'horizontal' = 'vertical';
+  rowgap = 0;
+  colgap = 0;
+  private dirty = true;
+
+  public render(context: DrawContext, mouseX: number, mouseY: number): void {
+    if (!this.visible) return;
+
+    if (this.dirty) {
+      this.dirty = false;
+
+      if (this.orientation == 'horizontal') {
+        let xx = this.x;
+
+        for (let i = 0; i < this.children.length; ++i) {
+          this.children[i].x = xx;
+          this.children[i].y = this.y;
+          xx += this.children[i].w + this.colgap;
+        }
+      } else {
+        let yy = this.y;
+
+        for (let i = 0; i < this.children.length; ++i) {
+          this.children[i].y = yy;
+          this.children[i].x = this.x;
+          yy += this.children[i].h + this.rowgap;
+        }
+      }
+    }
+
+    for (let i = 0; i < this.children.length; ++i) {
+      this.children[i].render(context, mouseX, mouseY);
+    }
+
+    if (DEBUG) {
+      context.drawBorder(this.x, this.y, 0, this.w, this.h, 1, 0, 0, 1);
+    } else if (this.debug != null) {
+      context.drawBorder(this.x, this.y, 0, this.w, this.h, this.debug[0], this.debug[1], this.debug[2], this.debug[3]);
+    }
+  }
+}
+
+export class CustomControl extends Control {
+  renderer?: CustomRenderer;
+  gradientDir: 'vertical' | 'horizontal' = 'vertical';
+  color0 = [1, 1, 1, 1];
+  color1 = [1, 1, 1, 1];
+  color = [1, 1, 1, 1];
+  textColor = [1, 1, 1, 1];
+  bgColor = [1, 1, 1, 1];
+
+  public render(context: DrawContext, mouseX: number, mouseY: number) {
+    if (!this.visible) return;
+
+    if (this.renderer != null) {
+      this.renderer.render(context, this, mouseX, mouseY);
+    }
+
+    for (let i = 0; i < this.children.length; ++i) {
+      this.children[i].render(context, mouseX, mouseY);
+    }
+
+    if (DEBUG) {
+      context.drawBorder(this.x, this.y, 0, this.w, this.h, 1, 0, 0, 1);
+    } else if (this.debug != null) {
+      context.drawBorder(this.x, this.y, 0, this.w, this.h, this.debug[0], this.debug[1], this.debug[2], this.debug[3]);
+    }
+  }
+}
+
+export class LabelControl extends Control {
+  text = '';
+  color = [1, 1, 1, 1];
+  shadow = false;
+
+  public render(context: DrawContext, mouseX: number, mouseY: number): void {
+    if (!this.visible) return;
+
+    if (this.text.length > 0) {
+      context.textRend.drawWithShadowfv(this.text, this.x, this.y, this.color);
+    }
+
+    for (let i = 0; i < this.children.length; ++i) {
+      this.children[i].render(context, mouseX, mouseY);
+    }
+
+    if (DEBUG) {
+      context.drawBorder(this.x, this.y, 0, this.w, this.h, 1, 0, 0, 1);
+    } else if (this.debug != null) {
+      context.drawBorder(this.x, this.y, 0, this.w, this.h, this.debug[0], this.debug[1], this.debug[2], this.debug[3]);
+    }
+  }
+}
+
+export class ImageControl extends Control {
+  texture = 'null';
+  u = 0;
+  v = 0;
+  us = -1;
+  vs = -1;
+  tw = -1;
+  th = -1;
+  tiled: 'x' | 'y' | 'both' | 'none' = 'none';
+  tiledScale = [1, 1];
+  clipRatio = 1;
+  grayscale = false;
+
+  public constructor() {
+    super();
+  }
+
+  public render(context: DrawContext, mouseX: number, mouseY: number) {
+    if (!this.visible) return;
+
+    if (this.texture != 'null') {
+      const tex = RenderSystem.getTexture(this.texture);
+
+      context.drawTexture(
+        this.texture,
+        this.x,
+        this.y,
+        0,
+        this.w,
+        this.h,
+        this.u,
+        this.v,
+        this.us == -1 ? tex.width : this.us,
+        this.vs == -1 ? tex.height : this.vs,
+        this.tw == -1 ? tex.width : this.tw,
+        this.th == -1 ? tex.height : this.th,
+        this.grayscale
+      );
+    }
+
+    for (let i = 0; i < this.children.length; ++i) {
+      this.children[i].render(context, mouseX, mouseY);
+    }
+
+    if (DEBUG) {
+      context.drawBorder(this.x, this.y, 0, this.w, this.h, 1, 0, 0, 1);
+    } else if (this.debug != null) {
+      context.drawBorder(this.x, this.y, 0, this.w, this.h, this.debug[0], this.debug[1], this.debug[2], this.debug[3]);
+    }
+  }
+}
+
+export class BindingObserver {
+  ups: ((v: any) => void)[] = [];
+  currentValue: any;
+
+  constructor(up?: (v: any) => void) {
+    if (up != null) this.ups.push(up);
+  }
+
+  addUp(up: (v: any) => void) {
+    this.ups.push(up);
+  }
+
+  update(value: any) {
+    this.currentValue = value;
+    for (let i = 0; i < this.ups.length; ++i) {
+      this.ups[i](value);
+    }
+  }
+}
+
+export class Binding {
+  obs: BindingObserver[] = [];
+  value: any;
+
+  setValue(v: any) {
+    this.value = v;
+    this.notifyAll();
+    return this;
+  }
+
+  add(ob: BindingObserver) {
+    this.obs.push(ob);
+  }
+
+  notifyAll() {
+    this.obs.forEach((ob) => ob.update(this.value));
+  }
+}
+
+export function createControl(name: string, parent: Control | null, parsedTrees: Record<string, Record<string, any>>, props: any, bindings: Record<string, Binding>, tree: Record<string, Control>) {
+  let control: Control;
+  if (props['type'] == 'image') {
+    control = new ImageControl();
+  } else if (props['type'] == 'label') {
+    control = new LabelControl();
+  } else if (props['type'] == 'custom') {
+    control = new CustomControl();
+  } else if (props['type'] == 'stack_panel') {
+    control = new StackPanelControl();
+  } else if (props['type'] == 'button') {
+    control = new ButtonControl();
+  } else if (props['type'] == 'screen') {
+    control = new ScreenControl();
+  } else {
+    return;
+  }
+
+  control.path = (parent != null ? parent.path : '') + '/' + name;
+
+  if (props['offset'] != null) {
+    if (props['x'] == null) props['x'] = props['offset'][0];
+    if (props['y'] == null) props['y'] = props['offset'][1];
+  }
+
+  if (props['x'] != null) {
+    const vx = props['x'];
+
+    if (typeof vx === 'string' && vx.startsWith('#')) {
+      if (control.propertyBag[vx] == null) {
+        control.propertyBag[vx] = new BindingObserver((v) => (control.x = v));
+      }
     } else {
-      this.initImage(offsetX, offsetY, screenWidth, screenHeight);
+      control.x = parseFloat(vx);
     }
   }
 
-  public initImage(offsetX: number, offsetY: number, screenWidth: number, screenHeight: number) {
-    let zIndex = this.layer;
-    if (this.parent) {
-      zIndex += this.parent.layer;
+  if (props['y'] != null) {
+    const vx = props['y'];
+
+    if (typeof vx === 'string' && vx.startsWith('#')) {
+      if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => (control.y = v));
+    } else {
+      control.y = parseFloat(vx);
+    }
+  }
+
+  if (props['size'] != null) {
+    if (props['width'] == null) props['width'] = props['size'][0];
+    if (props['height'] == null) props['height'] = props['size'][1];
+  }
+
+  if (props['width'] != null) {
+    const vx = props['width'];
+    if (typeof vx === 'string' && vx.startsWith('#')) {
+      if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => (control.w = v));
+      else control.propertyBag[vx].addUp((v) => (control.w = v));
+    } else {
+      control.w = props['width'];
+    }
+  }
+
+  if (props['height'] != null) {
+    const vx = props['height'];
+    if (typeof vx === 'string' && vx.startsWith('#')) {
+      if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => (control.h = v));
+      else control.propertyBag[vx].addUp((v) => (control.h = v));
+    } else {
+      control.h = props['height'];
+    }
+  }
+
+  if (props['debug'] != null) {
+    if (props['debug'] == 'red') {
+      control.debug = [1, 0, 0, 1];
+    } else if (props['debug'] == 'white') {
+      control.debug = [1, 1, 1, 1];
+    } else if (props['debug'] == 'black') {
+      control.debug = [0, 0, 0, 1];
+    } else if (props['debug'] == 'yellow') {
+      control.debug = [1, 1, 0, 1];
+    } else if (props['debug'] == 'green') {
+      control.debug = [0, 1, 0, 1];
+    } else if (props['debug'] == 'blue') {
+      control.debug = [0, 0, 1, 1];
+    } else if (props['debug'] == 'magenta') {
+      control.debug = [1, 0, 1, 1];
+    }
+  }
+
+  if (control instanceof ImageControl) {
+    if (props['texture'] != null) {
+      control.texture = props['texture'];
     }
 
-    let txr = UISpriteControl.cacheTxr[this.texture];
-    let w = this.size[0] === -1 ? txr.width : this.size[0];
-    let h = this.size[1] === -1 ? txr.height : this.size[1];
+    if (props['grayscale'] != null) {
+      control.grayscale = props['grayscale'];
+    }
 
-    if (this.keep_ratio) {
-      if (w >= h) {
-        h = w * (txr.width / txr.height);
+    if (props['uv'] != null) {
+      control.u = props['uv'][0];
+      control.v = props['uv'][1];
+    }
+
+    if (props['uv_size'] != null) {
+      if (props['u_size'] == null) props['u_size'] = props['uv_size'][0];
+      if (props['v_size'] == null) props['v_size'] = props['uv_size'][1];
+    }
+
+    if (props['u_size'] != null) {
+      control.us = props['u_size'];
+    }
+
+    if (props['v_size'] != null) {
+      control.vs = props['v_size'];
+    }
+
+    if (props['base_size'] != null) {
+      if (props['base_width'] == null) props['base_width'] = props['base_size'][0];
+      if (props['base_height'] == null) props['base_height'] = props['base_size'][1];
+    }
+
+    if (props['base_width'] != null) {
+      control.tw = props['base_width'];
+    }
+
+    if (props['base_height'] != null) {
+      control.th = props['base_height'];
+    }
+  } else if (control instanceof CustomControl) {
+    if (props['renderer'] != null) {
+      control.renderer =
+        props['renderer'] == 'fill_renderer'
+          ? new FillCustomRenderer()
+          : props['renderer'] == 'name_tag_renderer'
+          ? new NametagCustomRenderer()
+          : props['renderer'] == 'progress_bar_renderer'
+          ? new ProgBarCustomRenderer()
+          : props['renderer'] == 'debug_renderer'
+          ? new DebugCustomRenderer()
+          : new GradientCustomRenderer();
+    }
+
+    if (props['color'] != null) {
+      control.color = props['color'];
+    }
+
+    if (props['color1'] != null) {
+      const vx = props['color1'];
+      if (typeof vx === 'string' && vx.startsWith('#')) {
+        if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => ((control as CustomControl).color0 = v));
+      } else {
+        control.color0 = props['color1'];
+      }
+    }
+
+    if (props['color2'] != null) {
+      const vx = props['color2'];
+      if (typeof vx === 'string' && vx.startsWith('#')) {
+        if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => ((control as CustomControl).color1 = v));
+      } else {
+        control.color1 = props['color2'];
+      }
+    }
+
+    if (props['gradient_direction'] != null) {
+      control.gradientDir = props['gradient_direction'];
+    }
+  } else if (control instanceof StackPanelControl) {
+    if (props['orientation'] != null) {
+      control.orientation = props['orientation'];
+    }
+
+    if (props['gap'] != null) {
+      if (props['column_gap'] == null) props['column_gap'] = props['gap'][1];
+      if (props['row_gap'] == null) props['row_gap'] = props['gap'][0];
+    }
+
+    if (props['row_gap'] != null) {
+      control.rowgap = props['row_gap'];
+    }
+
+    if (props['column_gap'] != null) {
+      control.colgap = props['column_gap'];
+    }
+  } else if (control instanceof ScreenControl) {
+    if (props['force_render_below'] != null) {
+      control.forceRenderBelow = props['force_render_below'];
+    }
+
+    if (props['render_only_when_top_most'] != null) {
+      control.renderOnlyWhenTopMost = props['render_only_when_top_most'];
+    }
+  } else if (control instanceof LabelControl) {
+    if (props['text'] != null) {
+      const vx = props['text'];
+      if (typeof vx === 'string' && vx.startsWith('#')) {
+        if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => ((control as LabelControl).text = v));
+      } else {
+        control.text = props['text'];
+      }
+    }
+
+    if (props['color'] != null) {
+      control.color = props['color'];
+    }
+
+    if (props['shadow'] != null) {
+      control.text = props['shadow'];
+    }
+  }
+
+  if (props['controls'] != null) {
+    for (const child of props['controls']) {
+      for (const [ky, vl] of Object.entries(child)) {
+        const ctrl = createControl(ky, control, parsedTrees, vl, bindings, tree);
+        if (ctrl) {
+          ctrl.parent = control;
+          tree[ctrl.path] = ctrl;
+          control.children.push(ctrl);
+        }
+        break;
+      }
+    }
+  }
+
+  control.propertyBag['#visible'] = new BindingObserver((v) => (control.visible = v));
+  control.propertyBag['#visible'].currentValue = true;
+
+  if (props['property_bag'] != null) {
+    Object.entries<any>(props['property_bag']).forEach(([k, v]) => {
+      if (control.propertyBag[k] == null) control.propertyBag[k] = new BindingObserver();
+      control.propertyBag[k].currentValue = v;
+    });
+  }
+
+  if (props['bindings'] != null) {
+    for (const bind of props['bindings']) {
+      const bn = bind['binding_name'];
+      let bnov = bind['binding_name_override'];
+      if (bnov == null) bnov = bn;
+
+      if (bindings[bn] == null) bindings[bn] = new Binding();
+
+      if (control.propertyBag[bnov] == null) {
+        control.propertyBag[bnov] = new BindingObserver();
       }
 
-      if (h > w) {
-        w = h * (txr.height / txr.width);
-      }
-    }
-
-    let txr_u = clamp(this.uv[0], 0, txr.width);
-    let txr_v = clamp(this.uv[1], 0, txr.height);
-    let txr_u_width = this.uv_size[0] === -1 ? txr.width : clamp(this.uv_size[0], 0, txr.width - txr_u);
-    let txr_v_height = this.uv_size[1] === -1 ? txr.height : clamp(this.uv_size[1], 0, txr.height - txr_v);
-
-    // console.log(txr_u, txr_v, txr_u_width, txr_v_height);
-    let spriteoffX = 0;
-    let spriteoffY = 0;
-
-    if (this.clip_ratio !== 1) {
-      if (this.clip_direction === 'left') {
-        txr_u_width *= this.clip_ratio;
-        w *= this.clip_ratio;
-      } else if (this.clip_direction === 'up') {
-        txr_v_height *= this.clip_ratio;
-        h *= this.clip_ratio;
-      } else if (this.clip_direction === 'down') {
-        spriteoffY += h - h * this.clip_ratio;
-        txr_v = txr_v + txr_v_height * this.clip_ratio;
-        txr_v_height *= this.clip_ratio;
-        h *= this.clip_ratio;
-      } else if (this.clip_direction === 'right') {
-        spriteoffX += w - w * this.clip_ratio;
-        txr_u = txr_u + txr_u_width * this.clip_ratio;
-        txr_u_width *= this.clip_ratio;
-        w *= this.clip_ratio;
-      }
-    }
-
-    txr = new PIXI.Texture(txr.baseTexture, new PIXI.Rectangle(txr_u, txr_v, txr_u_width, txr_v_height));
-    txr.update();
-
-    let sprite: PIXI.Sprite | PIXI.Container = new PIXI.Sprite(txr);
-    sprite.width = w;
-    sprite.height = h;
-    sprite.x = spriteoffX;
-    sprite.y = spriteoffY;
-
-    if (this.nineslice_size !== null) {
-      sprite = new PIXI.NineSlicePlane(txr, this.nineslice_size[0], this.nineslice_size[1], this.nineslice_size[2], this.nineslice_size[3]);
-      if (sprite instanceof PIXI.NineSlicePlane) {
-        sprite.width = w;
-        sprite.height = h;
-      }
-    }
-    if (this.tiled) {
-      sprite = new PIXI.TilingSprite(txr, w, h);
-
-      if (sprite instanceof PIXI.TilingSprite) {
-        sprite.tilePosition.x = spriteoffX;
-        sprite.tilePosition.y = spriteoffY;
-
-        sprite.tileScale.set(this.tiled_scale[0], this.tiled_scale[1]);
-      }
-    }
-
-    if (this.grayscale) {
-      const grayS = new PIXI.filters.ColorMatrixFilter();
-      grayS.desaturate();
-      sprite.filters = [grayS];
-    }
-
-    if (sprite instanceof PIXI.Sprite) {
-      sprite.tint = (this.color[0] << 16) | (this.color[1] << 8) | this.color[2];
-    }
-
-    let [x, y] = this.getAnchoredOffset(w, h, screenWidth, screenHeight);
-
-    x += this.offset[0] + offsetX;
-    y += this.offset[1] + offsetY;
-
-    this._container.addChild(sprite);
-
-    this._container.position.set(x, y);
-    this._container.zIndex = zIndex;
-
-    for (let i = 0; i < this._children.length; i++) {
-      this._children[i].init(x - offsetX, y - offsetY, screenWidth, screenHeight);
+      bindings[bn].add(control.propertyBag[bnov]);
     }
   }
 
-  public set texture(texture: string) {
-    this._texture = texture;
-  }
-
-  public get texture() {
-    return this._texture;
-  }
-
-  public set nineslice_size(nineslice_size: null | [number, number, number, number]) {
-    this._nineslice_size = nineslice_size;
-  }
-
-  public get nineslice_size() {
-    return this._nineslice_size;
-  }
-
-  public set color(color: Color) {
-    this._color = color;
-  }
-
-  public get color() {
-    return this._color;
-  }
-
-  public set uv(uv: [number, number]) {
-    this._uv = uv;
-  }
-
-  public get uv() {
-    return this._uv;
-  }
-
-  public set uv_size(uv_size: [number, number]) {
-    this._uv_size = uv_size;
-  }
-
-  public get uv_size() {
-    return this._uv_size;
-  }
-
-  public set base_size(base_size: [number, number]) {
-    this._base_size = base_size;
-  }
-
-  public get base_size() {
-    return this._base_size;
-  }
-
-  public set grayscale(grayscale: boolean) {
-    this._grayscale = grayscale;
-  }
-
-  public get grayscale() {
-    return this._grayscale;
-  }
-
-  public set keep_ratio(keep_ratio: boolean) {
-    this._keep_ratio = keep_ratio;
-  }
-
-  public get keep_ratio() {
-    return this._keep_ratio;
-  }
-
-  public set tiled(tiled: Tiled) {
-    this._tiled = tiled;
-  }
-
-  public get tiled() {
-    return this._tiled;
-  }
-
-  public set tiled_scale(tiled_scale: [number, number]) {
-    this._tiled_scale = tiled_scale;
-  }
-
-  public get tiled_scale() {
-    return this._tiled_scale;
-  }
-
-  public set clip_ratio(clip_ratio: number) {
-    this._clip_ratio = clamp(clip_ratio, 0, 1);
-  }
-
-  public get clip_ratio() {
-    return this._clip_ratio;
-  }
-
-  public set clip_direction(clip_direction: ClipDirection) {
-    this._clip_direction = clip_direction;
-  }
-
-  public get clip_direction() {
-    return this._clip_direction;
-  }
+  return control;
 }

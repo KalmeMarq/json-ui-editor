@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <link rel="preload" href="./font/Minecraftia.ttf" as="font" crossorigin="anonymous">
-    <link rel="stylesheet" href="./styles.css">
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="./style.css">
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,6 +10,32 @@
     <link rel="shortcut icon" href="./icon.png" type="image/png">
   </head>
   <body>
+    <!-- <div id="ui-files" >
+      <details>
+        <summary>start_screen.json</summary>
+        <div contenteditable="true">
+          {<br>
+            "screen": {<br>
+              "type": "screen",<br>
+              "controls": [<br>
+              ]<br>
+            }<br>
+          }<br>
+        </div>
+      </details>
+      <details>
+        <summary>play_screen.json</summary>
+        <div contenteditable="true">
+          {<br>
+            "screen": {<br>
+              "type": "screen",<br>
+              "controls": [<br>
+              ]<br>
+            }<br>
+          }<br>
+        </div>
+      </details>
+    </div> -->
     <div class="app">
       <div class="files">
         <div id="explorer">
@@ -20,6 +46,14 @@
             <button class="toolbar-btn codicon codicon-refresh" id="refresh-explorer" title="Refresh Explorer"></button>
           </div>
           <div id="explorer-list">
+          </div>
+          <div id="info" style="color: white">
+            <p>Drag and drop files here</p>
+            <p>UI files have a schema. Hover over properties to see their description</p>
+            <p>Press Ctrl+S to reload UI</p>
+            <p>Press L to show debug lines</p>
+            <p>Press P to go to play screen</p>
+            <p>Press O to pop screen from stack</p>
           </div>
           <div class="links">
             <a href="https://github.com/KalmeMarq/json-ui-editor" target="_blank" rel="noopener">
@@ -50,6 +84,7 @@
       <button class="ctxmenu-item" id="ctxmenu-rename">Rename</button>
       <button class="ctxmenu-item" id="ctxmenu-delete">Delete</button>
     </div>
-    <script type="module" src="./src/index.ts"></script>
+    <p id="fps">60 FPS</p>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
