@@ -4,36 +4,157 @@ import { DEBUG } from './vars';
 
 const DEBUG_COLOR = [1, 0, 0, 1];
 
+abstract class UIProperty<T> {
+  name: string;
+  protected _value: T;
+  protected _initialValue: T;
+
+  constructor(name: string, initialValue: T) {
+    this.name = name;
+    this._value = initialValue;
+    this._initialValue = initialValue;
+  }
+
+  value(): T {
+    return this._value;
+  }
+
+  protected abstract parse(value: any): T;
+
+  setValue(value: any) {
+    this._value = this.parse(value);
+  }
+
+  abstract isOfType(value: any): boolean;
+}
+
+class StringUIProperty extends UIProperty<string> {
+  protected parse(value: any): string {
+    return value + '';
+  }
+
+  isOfType(value: any): boolean {
+    return typeof value == 'string';
+  }
+}
+
+class StringEnumUIProperty extends UIProperty<string> {
+  values: string[];
+  constructor(name: string, initialValue: string, values: string[]) {
+    super(name, initialValue);
+    this.values = values;
+  }
+
+  protected parse(value: any): string {
+    const vl = value + '';
+    if (this.values.indexOf(vl) >= 0) {
+      return vl;
+    }
+    return this._initialValue;
+  }
+
+  isOfType(value: any): boolean {
+    return typeof value == 'string' && this.values.indexOf(value) >= 0;
+  }
+}
+
+class BooleanUIProperty extends UIProperty<boolean> {
+  protected parse(value: any): boolean {
+    return typeof value == 'string' ? value.toLowerCase() == 'true' : Boolean(value);
+  }
+
+  isOfType(value: any): boolean {
+    return typeof value == 'boolean';
+  }
+}
+
+class NumberUIProperty extends UIProperty<number> {
+  private validate: (vl: number) => number;
+
+  public constructor(name: string, initialValue: number, validate: (vl: number) => number = (vl) => vl) {
+    super(name, initialValue);
+    this.validate = validate;
+  }
+
+  protected parse(value: any): number {
+    try {
+      return this.validate(parseFloat(value));
+    } catch (e) {
+      return this.validate(this._value);
+    }
+  }
+
+  isOfType(value: any): boolean {
+    return typeof value == 'number';
+  }
+}
+
 export abstract class CustomRenderer {
-  abstract render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number): void;
+  abstract render(context: DrawContext, control: UICustomControl, mouseX: number, mouseY: number): void;
 }
 
 export class DebugCustomRenderer extends CustomRenderer {
-  override render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number) {
+  override render(context: DrawContext, control: UICustomControl, mouseX: number, mouseY: number) {
     context.textRend.drawWithShadowfv('Debug', 0, 0, [1, 1, 1, 1]);
   }
 }
 
 export class NametagCustomRenderer extends CustomRenderer {
-  override render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number) {
+  override render(context: DrawContext, control: UICustomControl, mouseX: number, mouseY: number) {
     if (control.propertyBag['#playername'] != null) {
-      context.textRend.drawWithShadowfv(control.propertyBag['#playername'].currentValue, control.x, control.y, control.textColor);
+      const plnm = control.propertyBag['#playername'].currentValue;
+      const size = plnm.length * 7;
+      const xpad = control.propertyBag['#x_padding'] == null ? 3 : control.propertyBag['#x_padding'].currentValue;
+      const ypad = control.propertyBag['#y_padding'] == null ? 2 : control.propertyBag['#y_padding'].currentValue;
+      context.drawColoredfv(control.x - xpad, control.y - ypad, 0, size + xpad + xpad, 8 + ypad + ypad, control.bgColor);
+      context.textRend.drawWithShadowfv(control.propertyBag['#playername'].currentValue, control.x + xpad, control.y + ypad, control.textColor);
     }
   }
 }
 
+function clamp(value: number, min: number, max: number) {
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
+function getDurabilityColors(ratio: number): { progress_color: number[]; background_color: number[] } {
+  return {
+    progress_color: [(255 - 255 * ratio) / 255.0, (255 * ratio) / 255.0, 0, 1.0],
+    background_color: [(64 - 64 * ratio) / 255.0, 64 / 255.0, 0, 1.0]
+  };
+}
+
 export class ProgBarCustomRenderer extends CustomRenderer {
-  override render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number) {}
+  override render(context: DrawContext, control: UICustomControl, mouseX: number, mouseY: number) {
+    const currentAmount = control.getPropertyBagPropertyValueOrDefault('#progress_bar_current_amount', 1);
+    const totalAmount = control.getPropertyBagPropertyValueOrDefault('#progress_bar_total_amount', 1);
+    const isVisible = control.getPropertyBagPropertyValueOrDefault('#progress_bar_visible', true);
+    const isDurability = control.getPropertyBagPropertyValueOrDefault('is_durability', false);
+
+    if (!isVisible) return;
+
+    const ratio = clamp(currentAmount / totalAmount, 0, 1);
+
+    if (isDurability) {
+      const durColors = getDurabilityColors(ratio);
+      context.drawColoredfv(control.x, control.y, 0, control.w, control.h, durColors.background_color);
+      context.drawColoredfv(control.x, control.y, 0, control.w * ratio, control.h, durColors.progress_color);
+    } else {
+      context.drawColoredfv(control.x, control.y, 0, control.w, control.h, control.secondaryColor);
+      context.drawColoredfv(control.x, control.y, 0, control.w * ratio, control.h, control.primaryColor);
+    }
+  }
 }
 
 export class FillCustomRenderer extends CustomRenderer {
-  override render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number) {
+  override render(context: DrawContext, control: UICustomControl, mouseX: number, mouseY: number) {
     context.drawColoredfv(control.x, control.y, 0, control.w, control.h, control.color);
   }
 }
 
 export class GradientCustomRenderer extends CustomRenderer {
-  override render(context: DrawContext, control: CustomControl, mouseX: number, mouseY: number) {
+  override render(context: DrawContext, control: UICustomControl, mouseX: number, mouseY: number) {
     if (control.gradientDir == 'vertical') {
       context.drawVGradientfv(control.x, control.y, 0, control.w, control.h, control.color0, control.color1);
     } else {
@@ -42,37 +163,101 @@ export class GradientCustomRenderer extends CustomRenderer {
   }
 }
 
-export abstract class Control {
-  parent?: Control;
+export type UIEvent =
+  | {
+      type: 'mouse';
+      x: number;
+      y: number;
+      pressed: boolean;
+      double_pressed: boolean;
+      emit: (buttonId: string) => void;
+    }
+  | {
+      type: 'keyboard';
+      key: string;
+      x: number;
+      y: number;
+      emit: (buttonId: string) => void;
+    }
+  | {
+      type: 'button_id';
+      id: string;
+      pressed: boolean;
+      double_pressed: boolean;
+      x: number;
+      y: number;
+      emit: (buttonId: string, control: UIControl) => void;
+    };
+
+export abstract class UIControl {
+  parent?: UIControl;
   path = '';
   x = 0;
   y = 0;
   w = 0;
   h = 0;
   propertyBag: Record<string, BindingObserver> = {};
-  children: Control[] = [];
-  visible = true;
+  children: UIControl[] = [];
+  visible = new BooleanUIProperty('visible', true);
+  anchorFrom = new StringEnumUIProperty('anchor_from', 'top_left', ['top_left', 'top_middle', 'top_right', 'left_middle', 'center', 'right_middle', 'bottom_left', 'bottom_middle', 'bottom_right']);
+  anchorTo = new StringEnumUIProperty('anchor_from', 'top_left', ['top_left', 'top_middle', 'top_right', 'left_middle', 'center', 'right_middle', 'bottom_left', 'bottom_middle', 'bottom_right']);
+  enabled = new BooleanUIProperty('enabled', true);
   debug?: number[];
+  buttonMappings: {
+    from_button_id: string;
+    to_button_id: string;
+    mappingType: 'pressed' | 'double_pressed' | 'global';
+  }[] = [];
+
+  isEnabled(): boolean {
+    return this.parent != null ? this.parent.isEnabled() && this.enabled.value() : this.enabled.value();
+  }
 
   abstract render(context: DrawContext, mouseX: number, mouseY: number): void;
 
-  getPropertyBagProperty(name: string) {
-    return this.propertyBag[name];
+  getPropertyBagPropertyValueOrDefault(name: string, defaultValue: any) {
+    return this.propertyBag[name] == null ? defaultValue : this.propertyBag[name].currentValue;
+  }
+
+  layout() {}
+
+  isMouseOver(mouseX: number, mouseY: number) {
+    return mouseX >= this.x && mouseX < this.x + this.w && mouseY >= this.y && mouseY < this.y + this.h;
+  }
+
+  onEvent(event: UIEvent) {
+    for (const mapping of this.buttonMappings) {
+      if (event.type == 'button_id' && mapping.from_button_id == event.id) {
+        if (this instanceof UIButtonControl) console.log(event, mapping);
+        if (event.double_pressed && mapping.mappingType == 'double_pressed' && this.isMouseOver(event.x, event.y)) {
+          event.emit(mapping.to_button_id, this);
+          return;
+        } else if (event.pressed && mapping.mappingType == 'pressed' && this.isMouseOver(event.x, event.y)) {
+          event.emit(mapping.to_button_id, this);
+          return;
+        } else if (event.pressed && mapping.mappingType == 'global') {
+          event.emit(mapping.to_button_id, this);
+        }
+      }
+    }
+
+    for (let i = 0; i < this.children.length; ++i) {
+      this.children[i].onEvent(event);
+    }
   }
 }
 
-export class ButtonControl extends Control {
-  defaultControl = 'default';
-  hoverControl = 'hover';
-  lockedControl = 'locked';
+export class UIButtonControl extends UIControl {
+  defaultControl = new StringUIProperty('default_control', 'default');
+  hoverControl = new StringUIProperty('hover_control', 'hover');
+  lockedControl = new StringUIProperty('locked_control', 'locked');
 
   private dirty = true;
 
   private hovered = false;
-  private enabled = true;
 
   public render(context: DrawContext, mouseX: number, mouseY: number): void {
-    if (!this.visible) return;
+    if (!this.visible.value()) return;
 
     this.hovered = mouseX >= this.x && mouseX < this.x + this.w && mouseY >= this.y && mouseY < this.y + this.h;
 
@@ -89,12 +274,12 @@ export class ButtonControl extends Control {
     for (let i = 0; i < this.children.length; ++i) {
       const control = this.children[i];
 
-      if (control.path.endsWith('/' + this.defaultControl)) {
-        control.visible = this.enabled && !this.hovered;
-      } else if (control.path.endsWith('/' + this.hoverControl)) {
-        control.visible = this.enabled && this.hovered;
-      } else if (control.path.endsWith('/' + this.lockedControl)) {
-        control.visible = !this.enabled;
+      if (control.path.endsWith('/' + this.defaultControl.value())) {
+        control.visible.setValue(this.enabled.value() && !this.hovered);
+      } else if (control.path.endsWith('/' + this.hoverControl.value())) {
+        control.visible.setValue(this.enabled.value() && this.hovered);
+      } else if (control.path.endsWith('/' + this.lockedControl.value())) {
+        control.visible.setValue(!this.enabled.value());
       }
 
       control.render(context, mouseX, mouseY);
@@ -108,12 +293,12 @@ export class ButtonControl extends Control {
   }
 }
 
-export class ScreenControl extends Control {
+export class UIScreenControl extends UIControl {
   renderOnlyWhenTopMost = true;
   forceRenderBelow = false;
 
   public render(context: DrawContext, mouseX: number, mouseY: number): void {
-    if (!this.visible) return;
+    if (!this.visible.value()) return;
 
     for (let i = 0; i < this.children.length; ++i) {
       this.children[i].render(context, mouseX, mouseY);
@@ -121,25 +306,25 @@ export class ScreenControl extends Control {
   }
 }
 
-export class StackPanelControl extends Control {
-  orientation: 'vertical' | 'horizontal' = 'vertical';
-  rowgap = 0;
-  colgap = 0;
+export class UIStackPanelControl extends UIControl {
+  orientation = new StringEnumUIProperty('orientation', 'vertical', ['vertical', 'horizontal']);
+  rowgap = new NumberUIProperty('row_gap', 0, (vl) => clamp(vl, 0, Infinity));
+  colgap = new NumberUIProperty('column_gap', 0, (vl) => clamp(vl, 0, Infinity));
   private dirty = true;
 
   public render(context: DrawContext, mouseX: number, mouseY: number): void {
-    if (!this.visible) return;
+    if (!this.visible.value()) return;
 
     if (this.dirty) {
       this.dirty = false;
 
-      if (this.orientation == 'horizontal') {
+      if (this.orientation.value() == 'horizontal') {
         let xx = this.x;
 
         for (let i = 0; i < this.children.length; ++i) {
           this.children[i].x = xx;
           this.children[i].y = this.y;
-          xx += this.children[i].w + this.colgap;
+          xx += this.children[i].w + this.colgap.value();
         }
       } else {
         let yy = this.y;
@@ -147,7 +332,7 @@ export class StackPanelControl extends Control {
         for (let i = 0; i < this.children.length; ++i) {
           this.children[i].y = yy;
           this.children[i].x = this.x;
-          yy += this.children[i].h + this.rowgap;
+          yy += this.children[i].h + this.rowgap.value();
         }
       }
     }
@@ -164,17 +349,24 @@ export class StackPanelControl extends Control {
   }
 }
 
-export class CustomControl extends Control {
+export class UICustomControl extends UIControl {
   renderer?: CustomRenderer;
   gradientDir: 'vertical' | 'horizontal' = 'vertical';
   color0 = [1, 1, 1, 1];
   color1 = [1, 1, 1, 1];
   color = [1, 1, 1, 1];
   textColor = [1, 1, 1, 1];
-  bgColor = [1, 1, 1, 1];
+  bgColor = [50 / 255.0, 50 / 255.0, 50 / 255.0, 0.6];
+  dirty = true;
+  primaryColor = [0, 255 / 255.0, 0, 1.0];
+  secondaryColor = [76 / 255.0, 76 / 255.0, 76 / 255.0, 1];
 
   public render(context: DrawContext, mouseX: number, mouseY: number) {
-    if (!this.visible) return;
+    if (!this.visible.value()) return;
+
+    if (this.dirty) {
+      this.dirty = false;
+    }
 
     if (this.renderer != null) {
       this.renderer.render(context, this, mouseX, mouseY);
@@ -192,16 +384,17 @@ export class CustomControl extends Control {
   }
 }
 
-export class LabelControl extends Control {
+export class UILabelControl extends UIControl {
   text = '';
   color = [1, 1, 1, 1];
+  lockedColor = [1, 1, 1, 1];
   shadow = false;
 
   public render(context: DrawContext, mouseX: number, mouseY: number): void {
-    if (!this.visible) return;
+    if (!this.visible.value()) return;
 
     if (this.text.length > 0) {
-      context.textRend.drawWithShadowfv(this.text, this.x, this.y, this.color);
+      context.textRend.drawWithShadowfv(this.text, this.x, this.y, this.isEnabled() ? this.color : this.lockedColor);
     }
 
     for (let i = 0; i < this.children.length; ++i) {
@@ -216,7 +409,7 @@ export class LabelControl extends Control {
   }
 }
 
-export class ImageControl extends Control {
+export class UIImageControl extends UIControl {
   texture = 'null';
   u = 0;
   v = 0;
@@ -224,6 +417,7 @@ export class ImageControl extends Control {
   vs = -1;
   tw = -1;
   th = -1;
+  color = [1, 1, 1, 1];
   tiled: 'x' | 'y' | 'both' | 'none' = 'none';
   tiledScale = [1, 1];
   clipRatio = 1;
@@ -234,12 +428,12 @@ export class ImageControl extends Control {
   }
 
   public render(context: DrawContext, mouseX: number, mouseY: number) {
-    if (!this.visible) return;
+    if (!this.visible.value()) return;
 
     if (this.texture != 'null') {
       const tex = RenderSystem.getTexture(this.texture);
 
-      context.drawTexture(
+      context.drawColoredTexture(
         this.texture,
         this.x,
         this.y,
@@ -252,6 +446,7 @@ export class ImageControl extends Control {
         this.vs == -1 ? tex.height : this.vs,
         this.tw == -1 ? tex.width : this.tw,
         this.th == -1 ? tex.height : this.th,
+        this.color,
         this.grayscale
       );
     }
@@ -307,22 +502,38 @@ export class Binding {
   }
 }
 
-export function createControl(name: string, parent: Control | null, parsedTrees: Record<string, Record<string, any>>, props: any, bindings: Record<string, Binding>, tree: Record<string, Control>) {
-  let control: Control;
+const typeProp = new StringEnumUIProperty('type', '', ['image', 'label', 'custom', 'stack_panel', 'button', 'screen']);
+
+export function createControl(
+  name: string,
+  parent: UIControl | null,
+  parsedTrees: Record<string, Record<string, any>>,
+  props: any,
+  bindings: Record<string, Binding>,
+  tree: Record<string, UIControl>
+) {
+  let control: UIControl;
   if (props['type'] == 'image') {
-    control = new ImageControl();
+    control = new UIImageControl();
   } else if (props['type'] == 'label') {
-    control = new LabelControl();
+    control = new UILabelControl();
   } else if (props['type'] == 'custom') {
-    control = new CustomControl();
+    control = new UICustomControl();
   } else if (props['type'] == 'stack_panel') {
-    control = new StackPanelControl();
+    control = new UIStackPanelControl();
   } else if (props['type'] == 'button') {
-    control = new ButtonControl();
+    control = new UIButtonControl();
   } else if (props['type'] == 'screen') {
-    control = new ScreenControl();
+    control = new UIScreenControl();
   } else {
+    const path = (parent != null ? parent.path : '') + '/' + name;
+    (window as any).writeToConsole(path + ": type doesn't allow value '" + props['type'] + "'. Possible value: " + [...typeProp.values].join(', '), 'error');
     return;
+  }
+
+  function validateAndSet(prop: UIProperty<any>, value: any) {
+    if (prop.isOfType(value)) prop.setValue(value);
+    else (window as any).writeToConsole(control.path + ': ' + prop.name + " doesn't allow the value '" + (typeof value === 'string' ? '"' + value + '"' : value) + "'", 'error');
   }
 
   control.path = (parent != null ? parent.path : '') + '/' + name;
@@ -357,6 +568,26 @@ export function createControl(name: string, parent: Control | null, parsedTrees:
   if (props['size'] != null) {
     if (props['width'] == null) props['width'] = props['size'][0];
     if (props['height'] == null) props['height'] = props['size'][1];
+  }
+
+  if (props['enabled'] != null) {
+    const vx = props['enabled'];
+    if (typeof vx === 'string' && vx.startsWith('#')) {
+      if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => control.enabled.setValue(v));
+      else control.propertyBag[vx].addUp((v) => control.enabled.setValue(v));
+    } else {
+      validateAndSet(control.enabled, props['enabled']);
+    }
+  }
+
+  if (props['visible'] != null) {
+    const vx = props['enabled'];
+    if (typeof vx === 'string' && vx.startsWith('#')) {
+      if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => control.visible.setValue(v));
+      else control.propertyBag[vx].addUp((v) => control.visible.setValue(v));
+    } else {
+      validateAndSet(control.enabled, props['visible']);
+    }
   }
 
   if (props['width'] != null) {
@@ -397,13 +628,21 @@ export function createControl(name: string, parent: Control | null, parsedTrees:
     }
   }
 
-  if (control instanceof ImageControl) {
+  if (control instanceof UIImageControl) {
     if (props['texture'] != null) {
       control.texture = props['texture'];
     }
 
     if (props['grayscale'] != null) {
       control.grayscale = props['grayscale'];
+    }
+
+    if (props['color'] != null) {
+      const p = props['color'];
+      if (Array.isArray(p) && p.length >= 3) {
+        if (p.length == 3) control.color = [...p, 1];
+        else if (p.length == 4) control.color = p;
+      }
     }
 
     if (props['uv'] != null) {
@@ -436,7 +675,7 @@ export function createControl(name: string, parent: Control | null, parsedTrees:
     if (props['base_height'] != null) {
       control.th = props['base_height'];
     }
-  } else if (control instanceof CustomControl) {
+  } else if (control instanceof UICustomControl) {
     if (props['renderer'] != null) {
       control.renderer =
         props['renderer'] == 'fill_renderer'
@@ -451,13 +690,17 @@ export function createControl(name: string, parent: Control | null, parsedTrees:
     }
 
     if (props['color'] != null) {
-      control.color = props['color'];
+      const p = props['color'];
+      if (Array.isArray(p) && p.length >= 3) {
+        if (p.length == 3) control.color = [...p, 1];
+        else if (p.length == 4) control.color = p;
+      }
     }
 
     if (props['color1'] != null) {
       const vx = props['color1'];
       if (typeof vx === 'string' && vx.startsWith('#')) {
-        if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => ((control as CustomControl).color0 = v));
+        if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => ((control as UICustomControl).color0 = v));
       } else {
         control.color0 = props['color1'];
       }
@@ -466,7 +709,7 @@ export function createControl(name: string, parent: Control | null, parsedTrees:
     if (props['color2'] != null) {
       const vx = props['color2'];
       if (typeof vx === 'string' && vx.startsWith('#')) {
-        if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => ((control as CustomControl).color1 = v));
+        if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => ((control as UICustomControl).color1 = v));
       } else {
         control.color1 = props['color2'];
       }
@@ -475,9 +718,9 @@ export function createControl(name: string, parent: Control | null, parsedTrees:
     if (props['gradient_direction'] != null) {
       control.gradientDir = props['gradient_direction'];
     }
-  } else if (control instanceof StackPanelControl) {
+  } else if (control instanceof UIStackPanelControl) {
     if (props['orientation'] != null) {
-      control.orientation = props['orientation'];
+      validateAndSet(control.orientation, props['orientation']);
     }
 
     if (props['gap'] != null) {
@@ -486,13 +729,13 @@ export function createControl(name: string, parent: Control | null, parsedTrees:
     }
 
     if (props['row_gap'] != null) {
-      control.rowgap = props['row_gap'];
+      validateAndSet(control.rowgap, props['row_gap']);
     }
 
     if (props['column_gap'] != null) {
-      control.colgap = props['column_gap'];
+      validateAndSet(control.colgap, props['column_gap']);
     }
-  } else if (control instanceof ScreenControl) {
+  } else if (control instanceof UIScreenControl) {
     if (props['force_render_below'] != null) {
       control.forceRenderBelow = props['force_render_below'];
     }
@@ -500,11 +743,11 @@ export function createControl(name: string, parent: Control | null, parsedTrees:
     if (props['render_only_when_top_most'] != null) {
       control.renderOnlyWhenTopMost = props['render_only_when_top_most'];
     }
-  } else if (control instanceof LabelControl) {
+  } else if (control instanceof UILabelControl) {
     if (props['text'] != null) {
       const vx = props['text'];
       if (typeof vx === 'string' && vx.startsWith('#')) {
-        if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => ((control as LabelControl).text = v));
+        if (control.propertyBag[vx] == null) control.propertyBag[vx] = new BindingObserver((v) => ((control as UILabelControl).text = v));
       } else {
         control.text = props['text'];
       }
@@ -514,9 +757,31 @@ export function createControl(name: string, parent: Control | null, parsedTrees:
       control.color = props['color'];
     }
 
+    if (props['locked_color'] != null) {
+      control.lockedColor = props['locked_color'];
+    }
+
     if (props['shadow'] != null) {
       control.text = props['shadow'];
     }
+  } else if (control instanceof UIButtonControl) {
+    if (props[control.defaultControl.name]) {
+      validateAndSet(control.defaultControl, props[control.defaultControl.name]);
+    }
+    if (props[control.lockedControl.name]) {
+      validateAndSet(control.lockedControl, props[control.lockedControl.name]);
+    }
+    if (props[control.lockedControl.name]) {
+      validateAndSet(control.lockedControl, props[control.lockedControl.name]);
+    }
+  }
+
+  if (props['button_mappings'] != null) {
+    for (const mapping of props['button_mappings']) {
+      control.buttonMappings.push({ from_button_id: mapping['from_button_id'], to_button_id: mapping['to_button_id'], mappingType: mapping['mapping_type'] });
+    }
+
+    console.log(control.buttonMappings);
   }
 
   if (props['controls'] != null) {
@@ -533,8 +798,11 @@ export function createControl(name: string, parent: Control | null, parsedTrees:
     }
   }
 
-  control.propertyBag['#visible'] = new BindingObserver((v) => (control.visible = v));
+  control.propertyBag['#visible'] = new BindingObserver((v) => control.visible.setValue(v));
   control.propertyBag['#visible'].currentValue = true;
+
+  control.propertyBag['#enabled'] = new BindingObserver((v) => control.enabled.setValue(v));
+  control.propertyBag['#enabled'].currentValue = true;
 
   if (props['property_bag'] != null) {
     Object.entries<any>(props['property_bag']).forEach(([k, v]) => {

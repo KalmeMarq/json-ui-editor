@@ -17,7 +17,7 @@ export class TextRenderer {
     const tes = Tessellator.getInstance();
     const builder = tes.getBufferBuilder();
     RenderSystem.setShaderTexture(0, 'ascii.png');
-    RenderSystem.setShader(PROGRAMS.POSITION_TEXTURE);
+    RenderSystem.setShader(PROGRAMS.POSITION_TEXTURE_COLOR);
 
     let xx = x;
     const y1 = y + 8;
@@ -31,17 +31,19 @@ export class TextRenderer {
       const v0 = dt.v / 128;
       const u1 = (dt.u + 8) / 128;
       const v1 = (dt.v + 8) / 128;
-      builder.begin(DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
+      builder.begin(DrawMode.QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
 
-      builder.vertex(xx, y, 0).texture(u0, v0).next();
-      builder.vertex(xx, y1, 0).texture(u0, v1).next();
+      builder.vertex(xx, y, 0).texture(u0, v0).color(color[0], color[1], color[2], color[3]).next();
+      builder.vertex(xx, y1, 0).texture(u0, v1).color(color[0], color[1], color[2], color[3]).next();
       builder
         .vertex(xx + 8, y1, 0)
         .texture(u1, v1)
+        .color(color[0], color[1], color[2], color[3])
         .next();
       builder
         .vertex(xx + 8, y, 0)
         .texture(u1, v0)
+        .color(color[0], color[1], color[2], color[3])
         .next();
       builder.draw();
       xx += dt['a'];

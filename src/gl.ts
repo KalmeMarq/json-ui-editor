@@ -441,7 +441,7 @@ export class RenderSystem {
           GL.glBindTexture(GL.TEXTURE_2D, tex.id);
           GL.glTexImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, img!);
         });
-        img.src = '/' + texture;
+        img.src = './' + texture;
       } else {
         tex.width = img.width;
         tex.height = img.height;
@@ -479,7 +479,7 @@ export class RenderSystem {
           GL.glBindTexture(GL.TEXTURE_2D, tex.id);
           GL.glTexImage2D(GL.TEXTURE_2D, 0, GL.RGBA, GL.RGBA, GL.UNSIGNED_BYTE, img!);
         });
-        img.src = '/' + texture;
+        img.src = './' + texture;
       } else {
         tex.width = img.width;
         tex.height = img.height;

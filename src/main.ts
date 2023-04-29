@@ -2,7 +2,7 @@ import * as monaco from 'monaco-editor';
 import stripJsonComments from 'strip-json-comments';
 import { DrawContext } from './DrawContext';
 import { TextRenderer } from './TextRenderer';
-import { Binding, Control, ScreenControl, createControl } from './controls';
+import { Binding, UIControl, UIEvent, UIScreenControl, createControl } from './controls';
 import { RenderSystem, setGL } from './gl';
 import { Matrix4f } from './math';
 import { preparePrograms } from './program';
@@ -95,12 +95,21 @@ const consoleEl = document.getElementById('console') as HTMLDivElement;
 explorer.innerHTML = '';
 const filecontextMenu = document.getElementById('file-contextmenu')!;
 
-function writeToConsole(text: string) {
+function writeToConsole(text: string, type: 'info' | 'error' = 'info') {
   const p = document.createElement('p');
-  p.textContent = typeof text === 'object' ? JSON.stringify(text) : text;
+  if (type == 'info') {
+    p.textContent = typeof text === 'object' ? JSON.stringify(text) : text;
+  } else {
+    const span = document.createElement('span');
+    span.style.color = 'red';
+    span.textContent = typeof text === 'object' ? JSON.stringify(text) : text;
+    p.appendChild(span);
+  }
   consoleEl.appendChild(p);
   consoleEl.scrollTop = consoleEl.scrollHeight;
 }
+
+(window as any)['writeToConsole'] = writeToConsole;
 
 let files: ExplorerFile[] = [
   {
@@ -113,46 +122,19 @@ let files: ExplorerFile[] = [
     type: 'json',
     name: '_screen_defs.json',
     contextMenu: false,
-    model: monaco.editor.createModel(
-      `{
-  "start": {
-    "bindings": {
-      "#version": "Minecraft 4.13.69",
-      "#player_nametag": "Notch",
-      "#player_nametag_visible": true
-    }
-  }
-}`,
-      'json',
-      screenDefsUri
-    )
+    model: monaco.editor.createModel(await (await fetch('./ui/screen_defs.json')).text(), 'json', screenDefsUri)
   },
   {
     type: 'json',
     name: '_ui_defs.json',
     contextMenu: false,
-    model: monaco.editor.createModel(
-      `{
-  "ui_defs": [
-    "start_screen.json",
-    "play_screen.json",
-    "ui_common.json"
-  ]
-}`,
-      'json',
-      uiDefsUri
-    )
+    model: monaco.editor.createModel(await (await fetch('./ui/ui_defs.json')).text(), 'json', uiDefsUri)
   },
   {
     type: 'json',
     name: '_global_variables.json',
     contextMenu: false,
-    model: monaco.editor.createModel(
-      `{
-}`,
-      'json',
-      globalVarsUri
-    )
+    model: monaco.editor.createModel(await (await fetch('./ui/global_variables.json')).text(), 'json', globalVarsUri)
   },
   {
     type: 'json',
@@ -361,27 +343,75 @@ let mouseX = -1;
 let mouseY = -1;
 document.addEventListener('keydown', (e) => {
   keys[e.code] = true;
+
+  writeToConsole('keydown[code=' + e.code + ']');
+
+  if (e.code == 'Escape') {
+    ScreenStack_event({
+      type: 'button_id',
+      id: 'button.menu_cancel',
+      x: mouseX,
+      y: mouseY,
+      pressed: true,
+      double_pressed: false,
+      emit(buttonId, control) {
+        if (buttonId == 'button.menu_exit') {
+          ScreenStack_pop();
+        }
+      }
+    });
+  }
 });
 document.addEventListener('keyup', (e) => {
   keys[e.code] = false;
 
-  if (e.code == 'KeyK') {
+  (window as any).writeToConsole('keyup[code=' + e.code + ']');
+
+  if (e.code == 'KeyK' && keys['ShiftLeft']) {
+    e.preventDefault();
     DEBUG_UIFILES = !DEBUG_UIFILES;
     document.getElementById('ui-files')!.style.display = DEBUG_UIFILES ? 'block' : 'none';
-  } else if (e.code == 'KeyP') {
-    ScreenStack_push(createScreen('play').screen);
-  } else if (e.code == 'KeyO') {
-    ScreenStack_pop();
+  } // } else if (e.code == 'KeyP' && keys['ShiftLeft']) {
+  //   e.preventDefault();
+  //   ScreenStack_push(createScreen('play').screen);
+  // } else if (e.code == 'KeyO' && keys['ShiftLeft']) {
+  //   e.preventDefault();
+  //   ScreenStack_pop();
+  // }
+});
+
+canvas.addEventListener('mousedown', (e) => {
+  writeToConsole('mousedown[x=' + e.offsetX / 2 + ',y=' + e.offsetY / 2 + ']');
+
+  if (e.button == 0) {
+    ScreenStack_event({
+      type: 'button_id',
+      id: 'button.menu_select',
+      x: mouseX,
+      y: mouseY,
+      pressed: true,
+      double_pressed: e.detail == 2,
+      emit(buttonId, control) {
+        if (buttonId == 'button.menu_exit') {
+          ScreenStack_pop();
+        }
+
+        if (buttonId == 'button.menu_play') {
+          ScreenStack_push(createScreen('play').screen);
+        }
+      }
+    });
   }
 });
+
 canvas.addEventListener('mousemove', (e) => {
-  mouseX = e.offsetX / 3;
-  mouseY = e.offsetY / 3;
+  mouseX = e.offsetX / 2;
+  mouseY = e.offsetY / 2;
 });
 
 window.addEventListener('resize', () => {
   gl.viewport(0, 0, canvas.clientWidth, canvas.clientHeight);
-  projMat.identity().setOrtho(0, canvas.clientWidth, canvas.clientHeight + 1, 0, 1000, 3000);
+  projMat.identity().setOrtho(0, canvas.clientWidth / 2, canvas.clientHeight / 2 + 1, 0, 1000, 3000);
 });
 
 let cachedScreens: Record<string, UIScreen> = {};
@@ -397,6 +427,10 @@ function ScreenStack_pop() {
 }
 function ScreenStack_clear() {
   screenStack.length = 0;
+}
+function ScreenStack_event(event: UIEvent) {
+  if (screenStack.length == 0) return;
+  screenStack[screenStack.length - 1].screenEl?.onEvent(event);
 }
 function ScreenStack_render(context: DrawContext) {
   if (screenStack.length == 0) return;
@@ -415,9 +449,9 @@ function ScreenStack_render(context: DrawContext) {
 
 class UIScreen {
   name = Math.random() * 1000 + '';
-  screenEl?: ScreenControl;
-  tree: Record<string, Control> = {};
-  actions: Record<string, (control: Control) => void> = {};
+  screenEl?: UIScreenControl;
+  tree: Record<string, UIControl> = {};
+  actions: Record<string, (control: UIControl) => void> = {};
   bindings: Record<string, Binding> = {};
 
   public registerActions() {}
@@ -483,8 +517,6 @@ class StartScreen extends UIScreen {
   }
 
   public render(context: DrawContext, mouseX: number, mouseY: number): void {
-    super.render(context, mouseX, mouseY);
-
     if ((performance.now() / 1000) % 2 == 0) {
       this.setBinding('#grad0_color0', [Math.random(), Math.random(), Math.random(), 1]);
       this.setBinding('#grad0_color1', [Math.random(), Math.random(), Math.random(), 1]);
@@ -494,6 +526,8 @@ class StartScreen extends UIScreen {
     this.setBinding('#test_x_off', Math.sin(performance.now() / 1000) * 120 + 120);
 
     this.setBinding('#fill0_size', Math.sin(performance.now() / 1000) * 80 + 80 + 20);
+
+    super.render(context, mouseX, mouseY);
   }
 }
 
@@ -570,8 +604,8 @@ function parseTrees() {
 function createScreen(name: string) {
   if (cachedScreens[name] != null) return { screen: cachedScreens[name] };
 
-  const tree: Record<string, Control> = {};
-  const actions: Record<string, (control: Control) => void> = {};
+  const tree: Record<string, UIControl> = {};
+  const actions: Record<string, (control: UIControl) => void> = {};
   const bindings: Record<string, Binding> = {};
 
   let screen: UIScreen;
@@ -589,7 +623,7 @@ function createScreen(name: string) {
   screen.bindings = bindings;
 
   try {
-    const screenDefs = JSON.parse(stripJsonComments(getJsonFileSource('_screen_defs.json')))[name];
+    const screenDefs = JSON.parse(stripJsonComments(getJsonFileSource('_screen_defs.json')))['screen_definitions']['screens'][name]['context'];
 
     Object.entries(screenDefs['bindings']).forEach(([k, v]) => {
       screen.bindings[k] = new Binding().setValue(v);
@@ -611,7 +645,7 @@ function createScreen(name: string) {
     tree[control.path] = control;
   }
 
-  screen.screenEl = tree['/' + name + '_screen'] as ScreenControl;
+  screen.screenEl = tree['/' + name + '_screen'] as UIScreenControl;
   screen.screenEl.x = 0;
   screen.screenEl.y = 0;
   screen.screenEl.w = canvas.clientWidth;

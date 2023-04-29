@@ -1,6 +1,6 @@
 import { ShaderProgram } from './gl';
 
-export const PROGRAMS: Record<'POSITION' | 'POSITION_COLOR' | 'POSITION_TEXTURE' | 'GRAYSCALE_POSITION_TEXTURE', ShaderProgram> = {
+export const PROGRAMS: Record<'GRAYSCALE_POSITION_TEXTURE_COLOR' | 'POSITION_TEXTURE_COLOR' | 'POSITION' | 'POSITION_COLOR' | 'POSITION_TEXTURE' | 'GRAYSCALE_POSITION_TEXTURE', ShaderProgram> = {
   POSITION: {
     id: null,
     projectionUniform: null,
@@ -30,6 +30,26 @@ export const PROGRAMS: Record<'POSITION' | 'POSITION_COLOR' | 'POSITION_TEXTURE'
     samplers: [],
     vertex: await (await fetch('shaders/position_texture.vsh')).text(),
     fragment: await (await fetch('shaders/position_texture.fsh')).text()
+  },
+  POSITION_TEXTURE_COLOR: {
+    id: null,
+    projectionUniform: null,
+    modelViewUniform: null,
+    colorUniform: null,
+    hasTexture: true,
+    samplers: [],
+    vertex: await (await fetch('shaders/position_texture_color.vsh')).text(),
+    fragment: await (await fetch('shaders/position_texture_color.fsh')).text()
+  },
+  GRAYSCALE_POSITION_TEXTURE_COLOR: {
+    id: null,
+    projectionUniform: null,
+    modelViewUniform: null,
+    colorUniform: null,
+    hasTexture: true,
+    samplers: [],
+    vertex: await (await fetch('shaders/grayscale_position_texture_color.vsh')).text(),
+    fragment: await (await fetch('shaders/grayscale_position_texture_color.fsh')).text()
   },
   GRAYSCALE_POSITION_TEXTURE: {
     id: null,
