@@ -1,0 +1,61 @@
+{
+  "screen_definitions": {
+    "default": "start",
+    "context": {
+      "variables": {
+        "$is_trial": false,
+        "$is_publish": true,
+        "#playername": "Steve",
+        "#gamertag_label": "Steve",
+        "$desktop_screen": false,
+        "$pocket_screen": false
+      },
+      "whitelist_urls": [
+        "https://github.com/KalmeMarq/json-ui-editor"
+      ]
+    },
+    "screens": {
+      "start": {
+        "target": "start.start_screen",
+        "button_id": "button.menu_start",
+        "context": {
+          "variables": {
+          },
+          "bindings": {
+            "#pb1_visible": true,
+            "#pb1_total_amount": 150,
+            "#pb1_current_amount": 75,
+            "#button0_enabled": true,
+            "#version": "Minecraft 4.13.69",
+            "#player_nametag": "Notch",
+            "#player_nametag_visible": true,
+            "#development_version": "584d83f2f4b7fb96",
+            "#online_buttons_visible": true,
+            "#feedback_visible": true,
+            "$play_button_target": "button.menu_play",
+            "#marketplace_disabled": false,
+            "#new_offers": true,
+            "#toolbox_button_visible": true,
+            "#realms_notification_count": 13,
+            "#realms_notification_visible": true
+          },
+          "whitelist_urls": [
+            "https://aka.ms/minecraftfb",
+            "https://aka.ms/minecraftfbbeta"
+          ]
+        }
+      },
+      "play": {
+        "target": "play.play_screen",
+        "button_id": "button.menu_play",
+        "context": {
+          "variables": {
+          },
+          "bindings": {
+          },
+          "whitelist_urls": []
+        }
+      }
+    }
+  }
+}

@@ -8,6 +8,13 @@ Exclusive
   - u_size/v_size
   - base_width/base_height
 
+
+Input
+[ ] button_mappings
+    [x] mappingType[pressed]
+    [x] mappingType[double_pressed]
+    [x] mappingType[global]
+
 Animations
 [ ] anim_type[wait]
 [ ] anim_type[alpha]

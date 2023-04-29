@@ -1,0 +1,7 @@
+{
+  "ui_defs": [
+    "start_screen.json",
+    "play_screen.json",
+    "ui_common.json"
+  ]
+}

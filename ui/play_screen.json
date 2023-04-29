@@ -1,0 +1,79 @@
+{
+  "namespace": "play",
+
+  "button": {
+    "type": "button",
+    "size": [100, 20],
+    "default_control": "default",
+    "hover_control": "hover",
+    "locked_control": "locked",
+    "enabled": "#enabled",
+    "button_mappings": [
+      {
+        "from_button_id": "button.menu_select",
+        "to_button_id": "button.menu_exit",
+        "mapping_type": "pressed"
+      }
+    ],
+    "controls": [
+      {
+        "default": {
+          "type": "image",
+          "texture": "grass.png",
+          "uv": [0, 0],
+          "uv_size": [100, 20],
+          "size": [100, 20]
+        }
+      },
+      {
+        "hover": {
+          "type": "image",
+          "texture": "grass.png",
+          "uv": [0, 20],
+          "uv_size": [100, 20],
+          "size": [100, 20]
+        }
+      },
+      {
+        "locked": {
+          "type": "image",
+          "texture": "grass.png",
+          "uv": [0, 40],
+          "uv_size": [100, 20],
+          "size": [100, 20]
+        }
+      },
+      {
+        "label": {
+          "type": "label",
+          "text": "Cancel",
+          "offset": [34, 6]
+        }
+      }
+    ]
+  },
+
+  // Screen entrypoint. Do not remove!
+  "play_screen": {
+    "type": "screen",
+    "force_render_below": false,
+    "button_mappings": [
+      {
+        "from_button_id": "button.menu_cancel",
+        "to_button_id": "button.menu_exit",
+        "mapping_type": "global"
+      }
+    ],
+    "controls": [
+      {
+        "image0": {
+          "type": "image",
+          "texture": "grass.png",
+          "grayscale": true,
+          "size": [50, 50]
+        }
+      },
+      { "button@button": {} }
+    ]
+  }
+}
