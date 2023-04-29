@@ -19,21 +19,45 @@
             }
           };
         })({
-  "json": "/monacoeditorwork/json.worker.bundle.js",
-  "editorWorkerService": "/monacoeditorwork/editor.worker.bundle.js"
+  "json": "./monacoeditorwork/json.worker.bundle.js",
+  "editorWorkerService": "./monacoeditorwork/editor.worker.bundle.js"
 });</script>
 
-    <link rel="preload" href="./font/Minecraftia.ttf" as="font" crossorigin="anonymous">
-    
     <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>JSON UI Editor</title>
     <link rel="shortcut icon" href="./icon.png" type="image/png">
-    <script type="module" crossorigin src="./assets/index.4ca458e2.js"></script>
-    <link rel="stylesheet" href="./assets/index.38c75b74.css">
+    <script type="module" crossorigin src="./assets/index-d0e45aa2.js"></script>
+    <link rel="stylesheet" href="./assets/index-1a2ff238.css">
   </head>
   <body>
+    <!-- <div id="ui-files" >
+      <details>
+        <summary>start_screen.json</summary>
+        <div contenteditable="true">
+          {<br>
+            "screen": {<br>
+              "type": "screen",<br>
+              "controls": [<br>
+              ]<br>
+            }<br>
+          }<br>
+        </div>
+      </details>
+      <details>
+        <summary>play_screen.json</summary>
+        <div contenteditable="true">
+          {<br>
+            "screen": {<br>
+              "type": "screen",<br>
+              "controls": [<br>
+              ]<br>
+            }<br>
+          }<br>
+        </div>
+      </details>
+    </div> -->
     <div class="app">
       <div class="files">
         <div id="explorer">
@@ -44,6 +68,14 @@
             <button class="toolbar-btn codicon codicon-refresh" id="refresh-explorer" title="Refresh Explorer"></button>
           </div>
           <div id="explorer-list">
+          </div>
+          <div id="info" style="color: white">
+            <p>Drag and drop files here</p>
+            <p>UI files have a schema. Hover over properties to see their description</p>
+            <p>Press Ctrl+S to reload UI</p>
+            <p>Press L to show debug lines</p>
+            <p>Press P to go to play screen</p>
+            <p>Press O to pop screen from stack</p>
           </div>
           <div class="links">
             <a href="https://github.com/KalmeMarq/json-ui-editor" target="_blank" rel="noopener">
@@ -74,6 +106,7 @@
       <button class="ctxmenu-item" id="ctxmenu-rename">Rename</button>
       <button class="ctxmenu-item" id="ctxmenu-delete">Delete</button>
     </div>
+    <p id="fps">60 FPS</p>
     
   </body>
 </html>

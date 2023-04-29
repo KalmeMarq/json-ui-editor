@@ -1,0 +1,105 @@
+Exclusive
+  - gap
+    - row_gap
+    - colum_gap
+  - x/y
+  - width/height
+  - u/v
+  - u_size/v_size
+  - base_width/base_height
+
+Animations
+[ ] anim_type[wait]
+[ ] anim_type[alpha]
+[ ] anim_type[size]
+[ ] anim_type[offset]
+[ ] anim_type[color]
+[ ] anim_type[flip_book]
+[ ] anim_type[clip_ratio]
+[ ] anim_type[aseprite_flip_book]
+// Exclusive
+[ ] anim_type[uv]
+[ ] anim_type[uv_size]
+[ ] anim_type[base_size]
+[ ] anim_type[nineslice_size]
+[ ] anim_type[tiled_scale]
+[ ] anim_type[font_scale_factor]
+
+Control
+[x] property_bag
+[ ] layer (z_order)
+[ ] alpha
+[ ] propagate_alpha
+[ ] clips_children
+[ ] allow_clipping
+[ ] use_child_anchors
+[x] visible
+[ ] ignored
+[ ] enabled
+
+Layout
+[x] offset (x/y)
+[x] size (width/height)
+[ ] max_size (max_width/max_height)
+[ ] min_size (min_width/min_height)
+[ ] anchor_from
+[ ] anchor_to
+
+Data Binding
+[x] binding_type[none]
+[ ] binding_type[global]
+[ ] binding_type[view]
+[ ] binding_type[collection]
+[ ] binding_type[collection_details]
+
+Image
+[x] texture
+[ ] color
+[x] uv (u/v)
+[x] uv_size (u_size/v_size)
+[x] base_size (base_width/base_height)
+[x] grayscale
+[ ] fill
+[ ] $fit_to_width
+[ ] bilinear
+[ ] tiled
+[ ] tiled_scale
+[ ] texture_file_system
+[ ] allow_debug_missing_texture
+[ ] nineslice_size (nineslice_x0/nineslice_y0/nineslice_x1/nineslice_y1)
+[ ] clip_direction
+[ ] clip_ratio
+[ ] keep_ratio
+
+Label
+[x] text
+[ ] color
+[ ] localize
+[ ] enable_profanity_filter
+[ ] font_size
+[ ] font_scale_factor
+[ ] shadow
+[ ] locked_color
+[ ] notify_on_ellipses
+[ ] locked_alpha
+[ ] hide_hyphen
+[ ] font_type
+[ ] backup_font_type
+[ ] text_alignment (alignment)
+
+Stack Panel
+[x] orientation
+
+Input
+[ ] button_mappings
+
+Button
+[x] default_control
+[x] hover_control
+[ ] pressed_control
+[x] locked_control
+
+Screen
+[x] render_only_when_topmost
+[ ] is_showing_menu
+[x] force_render_below
