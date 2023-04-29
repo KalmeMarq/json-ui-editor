@@ -80,6 +80,7 @@
     "x": "#x_off",
     "y": "#y_off",
     "size": [100, 100],
+    "color": [0, 0, 1, 1],
     "bindings": [
       {
         "binding_name": "#test_x_off",

@@ -34,6 +34,8 @@ Animations
 
 Control
 [x] property_bag
+  - [ ] inherit propertybag
+
 [ ] layer (z_order)
 [ ] alpha
 [ ] propagate_alpha
@@ -53,6 +55,8 @@ Layout
 [ ] anchor_to
 
 Data Binding
+[ ] inherit bindings
+
 [x] binding_type[none]
 [ ] binding_type[global]
 [ ] binding_type[view]
@@ -61,7 +65,7 @@ Data Binding
 
 Image
 [x] texture
-[ ] color
+[x] color
 [x] uv (u/v)
 [x] uv_size (u_size/v_size)
 [x] base_size (base_width/base_height)
@@ -80,13 +84,13 @@ Image
 
 Label
 [x] text
-[ ] color
+[x] color
 [ ] localize
 [ ] enable_profanity_filter
 [ ] font_size
 [ ] font_scale_factor
 [ ] shadow
-[ ] locked_color
+[x] locked_color
 [ ] notify_on_ellipses
 [ ] locked_alpha
 [ ] hide_hyphen
@@ -96,9 +100,6 @@ Label
 
 Stack Panel
 [x] orientation
-
-Input
-[ ] button_mappings
 
 Button
 [x] default_control
