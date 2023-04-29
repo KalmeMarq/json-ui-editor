@@ -1,4 +1,4 @@
-import{m as i}from"./index-bf2620eb.js";/*!-----------------------------------------------------------------------------
+import{m as i}from"./index-87775ff8.js";/*!-----------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Version: 0.37.1(20a8d5a651d057aaed7875ad1c1f2ecf13c4e773)
  * Released under the MIT license
